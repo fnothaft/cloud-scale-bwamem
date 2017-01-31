@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.broadcast
 
-import java.io._                                                                                  
-                                                                                                  
-import org.apache.spark.broadcast.Broadcast                                                       
-import org.apache.spark.SparkException                                                            
-import org.apache.spark.Logging                                                                   
-import org.apache.spark.util.Utils                                                                
-                                                                                                  
+import java.io._
+
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.SparkException
+import org.apache.spark.Logging
+import org.apache.spark.util.Utils
+
 import scala.reflect.ClassTag
 
 import cs.ucla.edu.bwaspark.datatype.BWAIdxType
@@ -34,13 +33,12 @@ class ReferenceBroadcast(bd: Broadcast[BWAIdxType], isFromLocal: Boolean, path: 
 
   private def init(): BWAIdxType = {
     this.synchronized {
-      if(isFromLocal) {
+      if (isFromLocal) {
         val ref = new BWAIdxType
         println("Load reference genome")
         ref.load(path, 0)
         ref
-      }
-      else 
+      } else
         bd.value
     }
   }

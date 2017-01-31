@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.datatype
 
 import scala.collection.mutable.MutableList
@@ -33,7 +32,7 @@ class MemChainType(pos_i: Long, seeds_i: MutableList[MemSeedType]) {
 
   def print() {
     println("The reference position of the chain: " + pos)
-    seeds.map (ele => println("Ref Begin: " + ele.rBeg + ", Query Begin: " + ele.qBeg + ", Length: " + ele.len))
+    seeds.map(ele => println("Ref Begin: " + ele.rBeg + ", Query Begin: " + ele.qBeg + ", Length: " + ele.len))
   }
 
 }

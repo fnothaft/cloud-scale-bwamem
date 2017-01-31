@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.debug
 
 //this standalone object is for debug handling
@@ -28,7 +27,6 @@ object DebugFlag {
   //1: all debug information
 
   var debugLevel: Int = _
-  var debugBWTSMem : Boolean = false
-
+  var debugBWTSMem: Boolean = false
 
 }

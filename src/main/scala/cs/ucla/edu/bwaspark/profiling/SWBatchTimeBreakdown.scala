@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.profiling
 
 import scala.Serializable
@@ -26,10 +25,10 @@ import java.io.ObjectStreamException
 
 class SWBatchTimeBreakdown extends Serializable {
   var isFPGA: Boolean = true
-  var initSWBatchTime: Long  = 0
-  var SWBatchRuntime: Long  = 0
-  var SWBatchOnFPGA: Long  = 0
-  var postProcessSWBatchTime: Long  = 0
+  var initSWBatchTime: Long = 0
+  var SWBatchRuntime: Long = 0
+  var SWBatchOnFPGA: Long = 0
+  var postProcessSWBatchTime: Long = 0
   var FPGADataPreProcTime: Long = 0
   var FPGARoutineRuntime: Long = 0
   var FPGADataPostProcTime: Long = 0

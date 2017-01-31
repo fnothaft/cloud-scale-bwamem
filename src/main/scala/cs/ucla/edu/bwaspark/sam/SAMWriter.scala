@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.sam
 
 import java.io.BufferedWriter
 import java.nio.charset.Charset
-import java.nio.file.{Files,Path,Paths}
-
+import java.nio.file.{ Files, Path, Paths }
 
 class SAMWriter() {
   var writer: BufferedWriter = _
@@ -38,7 +36,7 @@ class SAMWriter() {
 
   def writeStringArray(strArray: Array[String]) {
     var i = 0
-    while(i < strArray.length) {
+    while (i < strArray.length) {
       writer.write(strArray(i), 0, strArray(i).length)
       i += 1
     }

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.sam
 
 import cs.ucla.edu.bwaspark.datatype.BNTSeqType
@@ -25,15 +24,14 @@ import java.io.ObjectOutputStream
 import java.util.Date
 import scala.Serializable
 
-import htsjdk.samtools.{SAMFileHeader,SAMProgramRecord,SAMSequenceRecord,SAMSequenceDictionary,SAMReadGroupRecord}
+import htsjdk.samtools.{ SAMFileHeader, SAMProgramRecord, SAMSequenceRecord, SAMSequenceDictionary, SAMReadGroupRecord }
 import htsjdk.samtools.util.Iso8601Date
 
 class SAMHeader extends Serializable {
   var bwaReadGroupID = new String
   var readGroupLine = new String
   var packageVersion = new String
-  var bwaPackageLine = new String 
-
+  var bwaPackageLine = new String
 
   def bwaGenSAMHeader(bns: BNTSeqType, packageVerIn: String): String = {
     packageVersion = packageVerIn
@@ -41,15 +39,14 @@ class SAMHeader extends Serializable {
 
     var headerStr = new String
     var i = 0
-    while(i < bns.n_seqs) {
-      headerStr += "@SQ\tSN:" + bns.anns(i).name + "\tLN:" + bns.anns(i).len.toString  + '\n'
+    while (i < bns.n_seqs) {
+      headerStr += "@SQ\tSN:" + bns.anns(i).name + "\tLN:" + bns.anns(i).len.toString + '\n'
       i += 1
     }
-    if(readGroupLine != "") headerStr = headerStr + readGroupLine + '\n'
+    if (readGroupLine != "") headerStr = headerStr + readGroupLine + '\n'
     headerStr += bwaPackageLine + '\n'
     headerStr
   }
-
 
   def parseReadGroupString(str: String): SAMReadGroupRecord = {
     var id: String = null
@@ -66,57 +63,55 @@ class SAMHeader extends Serializable {
     var sm: String = null
 
     val strArray = str.split('\t')
-      
-    for(strSeg <- strArray) {
+
+    for (strSeg <- strArray) {
       val op = strSeg.take(2)
       op match {
         case "ID" => id = strSeg.drop(3)
-        case "CN" => cn = strSeg.drop(3) 
-        case "DS" => ds = strSeg.drop(3) 
+        case "CN" => cn = strSeg.drop(3)
+        case "DS" => ds = strSeg.drop(3)
         case "DT" => dt = strSeg.drop(3)
-        case "FO" => fo = strSeg.drop(3) 
-        case "KS" => ks = strSeg.drop(3) 
+        case "FO" => fo = strSeg.drop(3)
+        case "KS" => ks = strSeg.drop(3)
         case "LB" => lb = strSeg.drop(3)
         //case "PG" => pg = strSeg.drop(3)   // Note: we omit PG field for now
-        case "PI" => pi = strSeg.drop(3) 
+        case "PI" => pi = strSeg.drop(3)
         case "PL" => pl = strSeg.drop(3)
-        case "PU" => pu = strSeg.drop(3) 
-        case "SM" => sm = strSeg.drop(3) 
-        case _ => None
+        case "PU" => pu = strSeg.drop(3)
+        case "SM" => sm = strSeg.drop(3)
+        case _    => None
       }
     }
 
-    if(id != null) {
+    if (id != null) {
       val samReadGroup = new SAMReadGroupRecord(id)
-      if(cn != null)
+      if (cn != null)
         samReadGroup.setSequencingCenter(cn)
-      if(ds != null)
+      if (ds != null)
         samReadGroup.setDescription(ds)
-      if(dt != null) 
+      if (dt != null)
         samReadGroup.setRunDate(new Iso8601Date(dt))
-      if(fo != null)
+      if (fo != null)
         samReadGroup.setFlowOrder(fo)
-      if(ks != null)
+      if (ks != null)
         samReadGroup.setKeySequence(ks)
-      if(lb != null)
+      if (lb != null)
         samReadGroup.setLibrary(lb)
-      if(pi != null)
+      if (pi != null)
         samReadGroup.setPredictedMedianInsertSize(pi.toInt)
-      if(pl != null)
+      if (pl != null)
         samReadGroup.setPlatform(pl)
-      if(pu != null)
+      if (pu != null)
         samReadGroup.setPlatformUnit(pu)
-      if(sm != null)
+      if (sm != null)
         samReadGroup.setSample(sm)
-    
+
       samReadGroup
-    }
-    else {
+    } else {
       println("[Error] Undefined group ID")
       exit(1)
     }
   }
-
 
   def bwaGenSAMHeader(bns: BNTSeqType, packageVerIn: String, readGroupString: String, samFileHeader: SAMFileHeader) {
     packageVersion = packageVerIn
@@ -129,7 +124,7 @@ class SAMHeader extends Serializable {
 
     var samSeqDict = new SAMSequenceDictionary
     var i = 0
-    while(i < bns.n_seqs) {
+    while (i < bns.n_seqs) {
       samSeqDict.addSequence(new SAMSequenceRecord(bns.anns(i).name, bns.anns(i).len))
       i += 1
     }
@@ -139,21 +134,19 @@ class SAMHeader extends Serializable {
     samFileHeader.addReadGroup(samReadGroup)
   }
 
-
   def bwaSetReadGroup(str: String): Boolean = {
     val rgPattern = """@RG\s+ID:([\w_-]+)""".r
     bwaReadGroupID = rgPattern findFirstIn str match {
-      case Some (rgPattern(rgID)) => rgID
-      case None => "Not matched"
+      case Some(rgPattern(rgID)) => rgID
+      case None                  => "Not matched"
     }
 
-    if(bwaReadGroupID == "Not matched") false
+    if (bwaReadGroupID == "Not matched") false
     else {
       readGroupLine = str
       true
     }
   }
-
 
   private def writeObject(out: ObjectOutputStream) {
     out.writeObject(bwaReadGroupID)
@@ -172,6 +165,6 @@ class SAMHeader extends Serializable {
   private def readObjectNoData() {
 
   }
-    
+
 }
 

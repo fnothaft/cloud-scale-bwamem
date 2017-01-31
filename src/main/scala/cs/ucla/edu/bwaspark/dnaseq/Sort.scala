@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.dnaseq
 
 import org.apache.spark.SparkContext
@@ -36,10 +35,10 @@ object Sort extends Serializable {
     val fs = FileSystem.get(new URI(hdfsAddress), conf)
     val paths = fs.listStatus(new Path(alignmentsRootPath)).map(ele => ele.getPath)
     val totalFilePartitions = paths.flatMap(p => fs.listStatus(p)).map(ele => ele.getPath).size
-    println("Total number of new file partitions" + (totalFilePartitions/coalesceFactor))
+    println("Total number of new file partitions" + (totalFilePartitions / coalesceFactor))
     var adamRecords = sc.loadAlignments(alignmentsRootPath)
     adamRecords.transform(rdd => {
-      rdd.coalesce(totalFilePartitions/coalesceFactor)
+      rdd.coalesce(totalFilePartitions / coalesceFactor)
     }).sortReadsByReferencePosition()
   }
 }

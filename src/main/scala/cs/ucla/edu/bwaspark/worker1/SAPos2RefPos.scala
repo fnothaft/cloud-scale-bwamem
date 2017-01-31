@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.worker1
 
 import cs.ucla.edu.bwaspark.datatype._
@@ -35,11 +34,11 @@ object SAPos2RefPos {
     var tmp2 = 0l
     var tmp3 = 0l
 
-    if ( (c & 2) != 0 ) tmp1 = y else tmp1 = ~y
+    if ((c & 2) != 0) tmp1 = y else tmp1 = ~y
 
     tmp1 = tmp1 >>> 1
 
-    if ( (c & 1) != 0 ) tmp2 = y else tmp2 = ~y
+    if ((c & 1) != 0) tmp2 = y else tmp2 = ~y
 
     tmp3 = 0x5555555555555555l
 
@@ -68,8 +67,6 @@ object SAPos2RefPos {
     (tmp1 >>> 56).toInt
   }
 
-
-
   def bwtOcc(bwt: BWTType, pos: Long, x: Long): Long = {
     var n: Long = 0l
     var k = pos
@@ -77,7 +74,7 @@ object SAPos2RefPos {
     //transform c from Long to ubyte_t?(Int instead)
     var c = (x & 0xffl).toInt
 
-    if (k == bwt.seqLen) bwt.L2(c+1) - bwt.L2(c)
+    if (k == bwt.seqLen) bwt.L2(c + 1) - bwt.L2(c)
     else if (k == -1l) 0l //the original is (uint64_t)(-1)
     else {
       if (k >= bwt.primary) k = k - 1
@@ -118,7 +115,7 @@ object SAPos2RefPos {
   }
 
   //compute inverse CSA
-  def bwtInvPsi(bwt:BWTType, k: Long): Long = {
+  def bwtInvPsi(bwt: BWTType, k: Long): Long = {
     var x: Long = if (k > bwt.primary) k - 1 else k
 
     //println("The x before bwt_B0 is " + x)
@@ -137,15 +134,15 @@ object SAPos2RefPos {
     else x
   }
 
-  def suffixArrayPos2ReferencePos(bwt: BWTType, k: Long /*uint64_t*/): Long /*uint64_t*/ = {
- 
+  def suffixArrayPos2ReferencePos(bwt: BWTType, k: Long /*uint64_t*/ ): Long /*uint64_t*/ = {
+
     //initialization
     var sa = 0l
     var mask = (bwt.saIntv - 1).toLong
 
     var pos = k
 
-    while ( (pos & mask) != 0 ) {
+    while ((pos & mask) != 0) {
       sa += 1l
       pos = bwtInvPsi(bwt, pos)
     }

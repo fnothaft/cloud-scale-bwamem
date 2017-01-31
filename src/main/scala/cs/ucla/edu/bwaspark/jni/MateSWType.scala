@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.jni
 
-import cs.ucla.edu.bwaspark.datatype.{MemAlnRegType}
+import cs.ucla.edu.bwaspark.datatype.{ MemAlnRegType }
 
 class MateSWType {
   var readIdx: Int = -1

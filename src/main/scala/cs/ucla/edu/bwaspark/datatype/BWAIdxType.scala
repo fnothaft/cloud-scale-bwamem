@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.datatype
 
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.io.{FileInputStream, IOException}
+import java.io.{ FileInputStream, IOException }
 import java.nio.channels.FileChannel
 import cs.ucla.edu.bwaspark.datatype.BinaryFileReadUtil._
 import scala.Serializable
@@ -31,7 +30,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 
 //BWAIdxType: maintaining all the information of BWA Index generated from FastA Reference
-class BWAIdxType extends Serializable {  
+class BWAIdxType extends Serializable {
 
   //1st: BWTType(".bwt", ".sa" files)
   var bwt: BWTType = _
@@ -40,7 +39,7 @@ class BWAIdxType extends Serializable {
   var bns: BNTSeqType = _
 
   //3rd: PACType(".pac" file)
-  var pac: Array[Byte] = _  //uint8_t[]
+  var pac: Array[Byte] = _ //uint8_t[]
 
   //loading files into fields
   //prefix: prefix of filenames
@@ -64,7 +63,7 @@ class BWAIdxType extends Serializable {
     if (true) {
       bns = new BNTSeqType
       bns.load(prefix)
-      
+
       //loading pac
       //!!!In the beginning, set all as true
       //if (which & BWA_IDX_PAC) {
@@ -77,16 +76,15 @@ class BWAIdxType extends Serializable {
           //var reader: AnyRef = null
           if (fs.exists(path)) {
             val reader = fs.open(path)
-            var pac = readByteArray(reader, (length/4+1).toInt, 0)          
+            var pac = readByteArray(reader, (length / 4 + 1).toInt, 0)
             pac
-          }
-          else {
+          } else {
             val reader = new FileInputStream(filename).getChannel
-            var pac = readByteArray(reader, (length/4+1).toInt, 0)          
+            var pac = readByteArray(reader, (length / 4 + 1).toInt, 0)
             pac
           }
         }
-        pac = pacLoader(prefix+".pac", bns.l_pac)
+        pac = pacLoader(prefix + ".pac", bns.l_pac)
       }
     }
   }
@@ -94,7 +92,7 @@ class BWAIdxType extends Serializable {
   private def writeObject(out: ObjectOutputStream) {
     out.writeObject(bwt)
     out.writeObject(bns)
-    out.writeObject(pac) 
+    out.writeObject(pac)
   }
 
   private def readObject(in: ObjectInputStream) {

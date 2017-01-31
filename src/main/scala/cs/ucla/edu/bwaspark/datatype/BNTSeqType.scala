@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.datatype
 
 import java.io._
@@ -59,8 +58,7 @@ class BNTSeqType extends Serializable {
       var annBufferedReader: BufferedReader = null
       if (fs.exists(path)) {
         annBufferedReader = new BufferedReader(new InputStreamReader(fs.open(path)))
-      }
-      else {
+      } else {
         annBufferedReader = new BufferedReader(new FileReader(filename)) //file reader
       }
       val headLine = annBufferedReader.readLine.split(" ") //the first line of the file, specify three variables: l_pac, n_seqs, and seed
@@ -75,7 +73,7 @@ class BNTSeqType extends Serializable {
         val name = firstLine(1)
         val anno = "" // fix me! No annotation at all!
         val secondLine = annBufferedReader.readLine.split(" ")
-        assert(secondLine.length == 3) 
+        assert(secondLine.length == 3)
         val offset = secondLine(0).toLong
         val len = secondLine(1).toInt
         val n_ambs = secondLine(2).toInt
@@ -99,8 +97,7 @@ class BNTSeqType extends Serializable {
       var ambBufferedReader: BufferedReader = null
       if (fs.exists(path)) {
         ambBufferedReader = new BufferedReader(new InputStreamReader(fs.open(path)))
-      }
-      else {
+      } else {
         ambBufferedReader = new BufferedReader(new FileReader(filename)) //file reader
       }
       val headLine = ambBufferedReader.readLine.split(" ").map(str => str.toLong) //the first line of the file, specify three variables: l_pac, n_seqs, and n_holes; l_pac and n_seqs are the same as those in .ann file
@@ -109,7 +106,7 @@ class BNTSeqType extends Serializable {
       var ambs = new Array[BNTAmbType](n_holes)
       for (i <- 0 until n_holes) {
         val currLine = ambBufferedReader.readLine.split(" ")
-        assert(currLine.length == 3) 
+        assert(currLine.length == 3)
         val offset = currLine(0).toLong
         val len = currLine(1).toInt
         val amb = currLine(2)(0)
@@ -119,7 +116,7 @@ class BNTSeqType extends Serializable {
       (ambs, n_holes)
     }
     //call ambLoader to assign variables: ambs and n_holes
-    val ambResult = ambLoader(prefix + ".amb") 
+    val ambResult = ambLoader(prefix + ".amb")
     ambs = ambResult._1
     n_holes = ambResult._2
   }
@@ -146,4 +143,4 @@ class BNTSeqType extends Serializable {
 
   }
 
-}             
+}

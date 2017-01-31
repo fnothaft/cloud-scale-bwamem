@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.worker1
 
 import cs.ucla.edu.bwaspark.datatype._
@@ -32,7 +31,7 @@ object MemChain {
   //get the next start point for forward and backward extension
 
   def smemNext(itr: SMemItrType, splitLen: Int, splitWidth: Int, startWidth: Int): Array[BWTIntvType] = {
-    
+
     if (debugLevel > 0) {
       println("Perform function smemNext")
     }
@@ -67,7 +66,7 @@ object MemChain {
         itr.start = smemObj.bwtSMem1(itr.bwt, itr.len, itr.query, oriStart, startWidth, itr.matches, itr.tmpVec0, itr.tmpVec1)
 
         if (debugLevel > 0) {
-          println ("The original run of bwtSMem1")
+          println("The original run of bwtSMem1")
           itr.matches.map(ele => ele.print())
         }
 
@@ -75,7 +74,7 @@ object MemChain {
           println("smemNext: the first run of function bwtSMem1 done")
         }
 
-        assert (itr.matches.length > 0) //in theory, there is at least one match
+        assert(itr.matches.length > 0) //in theory, there is at least one match
 
         //looking for the longest match
         var maxBWTIntv = itr.matches.maxBy(ele => (ele.endPoint - ele.startPoint))
@@ -85,8 +84,8 @@ object MemChain {
         if (debugLevel > 0) {
           print("Max BWT Interval: ")
           maxBWTIntv.print()
-          println ("Max length: " + maxLength)
-          println ("Middle point is " + middlePointOfMax)
+          println("Max length: " + maxLength)
+          println("Middle point is " + middlePointOfMax)
         }
 
         //if the longest SMEM is unique and long
@@ -107,7 +106,7 @@ object MemChain {
           //1)length of the seed should be no less than maxLength/2
           //2)endPoint should exceed original start point
           itr.sub = itr.sub.filter(ele => ((ele.endPoint - ele.startPoint) >= maxLength / 2) &&
-                                 ele.endPoint > oriStart)
+            ele.endPoint > oriStart)
 
           //merge itr.matches and itr.sub and sort by start point (end point if start point equals)
           itr.matches = (itr.matches.++(itr.sub)).sortWith((a, b) => (if (a.startPoint < b.startPoint) true else if (a.startPoint > b.startPoint) false else a.endPoint > b.endPoint))
@@ -157,13 +156,13 @@ object MemChain {
     }
 
     bwtIntvOnPoint = smemNext(smemItr, splitLen, opt.splitWidth, startWidth)
-    
+
     if (debugLevel > 0) {
       println("generateChainTree: finish the 1st smemNext")
     }
     var idx = 0;
-    while ( bwtIntvOnPoint != null ) {
-      if (debugLevel > 0) {println("It is the " + idx + "th times for the while loop"); idx += 1}
+    while (bwtIntvOnPoint != null) {
+      if (debugLevel > 0) { println("It is the " + idx + "th times for the while loop"); idx += 1 }
       //traverse all the seeds
       for (i <- 0 until bwtIntvOnPoint.length) {
 
@@ -173,8 +172,7 @@ object MemChain {
         //ignore the seed if it it too short or too repetitive
         if (seedLen < opt.minSeedLen || bwtIntvOnPoint(i).s > opt.maxOcc) {
           //do nothing
-        }
-        //the statements in the else clause are the main part
+        } //the statements in the else clause are the main part
         //it will traverse all the possible positions in the suffix array(reference)
         else {
           //traverse each aligned position
@@ -190,8 +188,7 @@ object MemChain {
             //handle edge cases
             if (rBeg < l_pac && l_pac < rBeg + len) {
               //do nothing if a seed crossing the boundary
-            }
-            else {
+            } else {
               //generate a seed for this position
               val newSeed = new MemSeedType(rBeg, qBeg, len)
 
@@ -220,9 +217,9 @@ object MemChain {
                   val tmp = chainTree.higher(tmpChain)
                   if (debugLevel > 0) {
                     if (res == null && chainTree.size != 0) println("Chain Tree is not empty but no lower node found")
-                    else { println("Lower chain found, which is:"); res.print()}
+                    else { println("Lower chain found, which is:"); res.print() }
                     if (tmp == null && chainTree.size != 0) println("Chain Tree is not empty but no higher node found")
-                    else { println("Higher chain found, which is:"); tmp.print()}
+                    else { println("Higher chain found, which is:"); tmp.print() }
                   }
                   res
                 }
@@ -259,11 +256,11 @@ object MemChain {
 
                 //if the seed is fully contained by the chain, return true
                 if (qBegChain <= seed.qBeg && qEndChain >= seed.qBeg + seed.len &&
-                    rBegChain <= seed.rBeg && rEndChain >= seed.rBeg + seed.len)
+                  rBegChain <= seed.rBeg && rEndChain >= seed.rBeg + seed.len)
                   true
                 //if not in the same strand (crossing l_pac boundary), return false
-                else if ( (rBegChain < l_pac || chain.seeds.last.rBeg < l_pac) &&
-                          seed.rBeg >= l_pac)
+                else if ((rBegChain < l_pac || chain.seeds.last.rBeg < l_pac) &&
+                  seed.rBeg >= l_pac)
                   false
                 else {
                   //follow the conditions judged in original BWA test_and_merge function
@@ -271,15 +268,14 @@ object MemChain {
                   val y: Int = (seed.rBeg - chain.seeds.last.rBeg).toInt
 
                   if (y >= 0 &&
-                      x - y <= opt.w &&
-                      y - x <= opt.w &&
-                      x - chain.seeds.last.len.toInt < opt.maxChainGap &&
-                      y - chain.seeds.last.len.toInt < opt.maxChainGap) {
+                    x - y <= opt.w &&
+                    y - x <= opt.w &&
+                    x - chain.seeds.last.len.toInt < opt.maxChainGap &&
+                    y - chain.seeds.last.len.toInt < opt.maxChainGap) {
                     //all the conditions are satisfied? growing the chain
                     chain.seeds += seed
                     true //return true
-                  }
-                  else false
+                  } else false
                 }
               }
 
@@ -301,17 +297,16 @@ object MemChain {
                   chainTree = new TreeSet[MemChainType](new Comparator[MemChainType]() {
                     def compare(a: MemChainType, b: MemChainType): Int = {
                       if (a.pos > b.pos) 1
-                      else if (a.pos < b. pos) -1
+                      else if (a.pos < b.pos) -1
                       else 0
                     }
-                  } )
+                  })
                   //insert the chain to the tree
                   chainTree.add(newChain)
-                }
-                //2)if the chainTree is not empty, directly add it
+                } //2)if the chainTree is not empty, directly add it
                 else chainTree.add(newChain)
               }
-            }            
+            }
           }
         }
       }
@@ -331,21 +326,21 @@ object MemChain {
   def traverseChainTree(chainTree: TreeSet[MemChainType]): Array[MemChainType] = {
     //if the tree is empty, return null
     if (chainTree == null) null
-    
+
     //else, it's gonna be a simple map() task
     else {
       val itr = chainTree.iterator
       val chains = new Array[MemChainType](chainTree.size).map(ele => itr.next)
-      chains.foreach(ele => { 
+      chains.foreach(ele => {
         ele.seedsRefArray = ele.seeds.toArray
-        } )
+      })
       chains
     }
   }
 
   //generate chains for each read
   def generateChains(opt: MemOptType, bwt: BWTType, l_pac: Long, len: Int, seq: Array[Byte]): Array[MemChainType] = {
-    
+
     if (debugLevel > 0) {
       println("Perform function generateChains")
     }
@@ -357,18 +352,17 @@ object MemChain {
         println("End function generateChains")
       }
       null
-    }
-    //the else part the real meaty part for this function
+    } //the else part the real meaty part for this function
     else {
       //generate a SMemItrType object for smemNext
-      val smemItr = new SMemItrType(bwt, 
-                                    seq, 
-                                    0, //the first startpoint for smemNext is 0
-                                    len,
-                                    new MutableList[BWTIntvType](), //matches array
-                                    new MutableList[BWTIntvType](), //sub array
-                                    new MutableList[BWTIntvType](), //temporary array 0
-                                    new MutableList[BWTIntvType]()) //temporary array 1
+      val smemItr = new SMemItrType(bwt,
+        seq,
+        0, //the first startpoint for smemNext is 0
+        len,
+        new MutableList[BWTIntvType](), //matches array
+        new MutableList[BWTIntvType](), //sub array
+        new MutableList[BWTIntvType](), //temporary array 0
+        new MutableList[BWTIntvType]()) //temporary array 1
 
       //generate a tree for all chains
       if (debugLevel > 0) {
@@ -393,5 +387,5 @@ object MemChain {
       }
       chains
     }
-  }  
+  }
 }

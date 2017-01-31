@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cs.ucla.edu.bwaspark.profiling
 
 import cs.ucla.edu.bwaspark.datatype._
@@ -36,33 +35,31 @@ import cs.ucla.edu.bwaspark.profiling.MemChainToAlignBatchedProfile._
 //1)for each read, generate all the possible seed chains
 //2)using SW algorithm to extend each chain to all possible aligns
 object BWAMemWorker1BatchedProfile {
-  
+
   /**
-    *  Perform BWAMEM worker1 function for single-end alignment
-    *  Alignment is processed in a batched way
-    *
-    *  @param opt the MemOptType object, BWAMEM options
-    *  @param bwt BWT and Suffix Array
-    *  @param bns .ann, .amb files
-    *  @param pac .pac file (PAC array: uint8_t)
-    *  @param pes pes array for worker2
-    *  @param seqArray a batch of reads
-    *  @param numOfReads #reads in the batch
-    *  
-    *  Return: a batch of reads with alignments 
-    */
-  def bwaMemWorker1BatchedProfile
-                          (opt: MemOptType, //BWA MEM options
-                           bwt: BWTType, //BWT and Suffix Array
-                           bns: BNTSeqType, //.ann, .amb files
-                           pac: Array[Byte], //.pac file uint8_t
-                           pes: Array[MemPeStat], //pes array
-                           seqArray: Array[FASTQRecord], //the batched reads
-                           numOfReads: Int, //the number of the batched reads
-			   runOnFPGA: Boolean, //if run on FPGA
-			   threshold: Int, //the batch threshold to run on FPGA
-                           profileData: SWBatchTimeBreakdown
-                           ): Array[ReadType] = { //all possible alignments for all the reads  
+   *  Perform BWAMEM worker1 function for single-end alignment
+   *  Alignment is processed in a batched way
+   *
+   *  @param opt the MemOptType object, BWAMEM options
+   *  @param bwt BWT and Suffix Array
+   *  @param bns .ann, .amb files
+   *  @param pac .pac file (PAC array: uint8_t)
+   *  @param pes pes array for worker2
+   *  @param seqArray a batch of reads
+   *  @param numOfReads #reads in the batch
+   *
+   *  Return: a batch of reads with alignments
+   */
+  def bwaMemWorker1BatchedProfile(opt: MemOptType, //BWA MEM options
+                                  bwt: BWTType, //BWT and Suffix Array
+                                  bns: BNTSeqType, //.ann, .amb files
+                                  pac: Array[Byte], //.pac file uint8_t
+                                  pes: Array[MemPeStat], //pes array
+                                  seqArray: Array[FASTQRecord], //the batched reads
+                                  numOfReads: Int, //the number of the batched reads
+                                  runOnFPGA: Boolean, //if run on FPGA
+                                  threshold: Int, //the batch threshold to run on FPGA
+                                  profileData: SWBatchTimeBreakdown): Array[ReadType] = { //all possible alignments for all the reads  
 
     // *****    PROFILING     *****
     val startTime = System.nanoTime
@@ -80,8 +77,8 @@ object BWAMemWorker1BatchedProfile {
     val chainsFilteredArray = new Array[Array[MemChainType]](numOfReads)
     i = 0;
     while (i < numOfReads) {
-      chainsFilteredArray(i) = memChainFilter(opt, generateChains(opt, bwt, bns.l_pac, lenArray(i), readArray(i))) 
-      i = i+1;
+      chainsFilteredArray(i) = memChainFilter(opt, generateChains(opt, bwt, bns.l_pac, lenArray(i), readArray(i)))
+      i = i + 1;
     }
 
     // *****   PROFILING    *******
@@ -93,7 +90,7 @@ object BWAMemWorker1BatchedProfile {
     while (i < numOfReads) {
       readRetArray(i) = new ReadType
       readRetArray(i).seq = seqArray(i)
-      i = i+1
+      i = i + 1
     }
 
     val preResultsOfSW = new Array[Array[SWPreResultType]](numOfReads)
@@ -105,25 +102,24 @@ object BWAMemWorker1BatchedProfile {
         preResultsOfSW(i) = null
         numOfSeedsArray(i) = 0
         regArrays(i) = null
-      }
-      else {
+      } else {
         preResultsOfSW(i) = new Array[SWPreResultType](chainsFilteredArray(i).length)
         var j = 0;
         while (j < chainsFilteredArray(i).length) {
-          preResultsOfSW(i)(j)= calPreResultsOfSW(opt, bns.l_pac, pac, lenArray(i), readArray(i), chainsFilteredArray(i)(j))
-    	    j = j+1
-    	  }
+          preResultsOfSW(i)(j) = calPreResultsOfSW(opt, bns.l_pac, pac, lenArray(i), readArray(i), chainsFilteredArray(i)(j))
+          j = j + 1
+        }
         numOfSeedsArray(i) = 0
         chainsFilteredArray(i).foreach(chain => {
           numOfSeedsArray(i) += chain.seeds.length
-          } )
+        })
         if (debugLevel == 1) println("Finished the calculation of pre-results of Smith-Waterman")
         if (debugLevel == 1) println("The number of reads in this pack is: " + numOfReads)
         regArrays(i) = new MemAlnRegArrayType
         regArrays(i).maxLength = numOfSeedsArray(i)
         regArrays(i).regs = new Array[MemAlnRegType](numOfSeedsArray(i))
       }
-      i = i+1;
+      i = i + 1;
     }
     if (debugLevel == 1) println("Finished the pre-processing part")
 
@@ -135,16 +131,16 @@ object BWAMemWorker1BatchedProfile {
 
     // *****   PROFILING    *******
     val chainToAlnEndTime = System.nanoTime
-    profileData.chainToAlnTime = chainToAlnEndTime - filterChainEndTime    
+    profileData.chainToAlnTime = chainToAlnEndTime - filterChainEndTime
 
     if (debugLevel == 1) println("Finished the batched-processing part")
-    regArrays.foreach(ele => {if (ele != null) ele.regs = ele.regs.filter(r => (r != null))})
-    regArrays.foreach(ele => {if (ele != null) ele.maxLength = ele.regs.length})
+    regArrays.foreach(ele => { if (ele != null) ele.regs = ele.regs.filter(r => (r != null)) })
+    regArrays.foreach(ele => { if (ele != null) ele.maxLength = ele.regs.length })
     i = 0;
     while (i < numOfReads) {
       if (regArrays(i) == null) readRetArray(i).regs = null
       else readRetArray(i).regs = memSortAndDedup(regArrays(i), opt.maskLevelRedun).regs
-      i = i+1
+      i = i + 1
     }
 
     // *****   PROFILING    *******
@@ -155,33 +151,32 @@ object BWAMemWorker1BatchedProfile {
   }
 
   /**
-    *  Perform BWAMEM worker1 function for pair-end alignment
-    *
-    *  @param opt the MemOptType object, BWAMEM options
-    *  @param bwt BWT and Suffix Array
-    *  @param bns .ann, .amb files
-    *  @param pac .pac file (PAC array: uint8_t)
-    *  @param pes pes array for worker2
-    *  @param pairSeqs a read with both ends
-    *  
-    *  Return: a read with alignments on both ends
-    */
-  def pairEndBwaMemWorker1BatchedProfile
-                          (opt: MemOptType, //BWA MEM options
-                           bwt: BWTType, //BWT and Suffix Array
-                           bns: BNTSeqType, //.ann, .amb files
-                           pac: Array[Byte], //.pac file uint8_t
-                           pes: Array[MemPeStat], //pes array
-			   seqArray0: Array[FASTQRecord], //the first batch
-			   seqArray1: Array[FASTQRecord], //the second batch
-			   numOfReads: Int, //the number of reads in each batch
-			   runOnFPGA: Boolean, //if run on FPGA
-			   threshold: Int, //the batch threshold to run on FPGA
-                           jniSWExtendLibPath: String = null // SWExtend Library Path
-                          ): PairEndBatchedProfile = { //all possible alignment
-    if(jniSWExtendLibPath != null && runOnFPGA)
+   *  Perform BWAMEM worker1 function for pair-end alignment
+   *
+   *  @param opt the MemOptType object, BWAMEM options
+   *  @param bwt BWT and Suffix Array
+   *  @param bns .ann, .amb files
+   *  @param pac .pac file (PAC array: uint8_t)
+   *  @param pes pes array for worker2
+   *  @param pairSeqs a read with both ends
+   *
+   *  Return: a read with alignments on both ends
+   */
+  def pairEndBwaMemWorker1BatchedProfile(opt: MemOptType, //BWA MEM options
+                                         bwt: BWTType, //BWT and Suffix Array
+                                         bns: BNTSeqType, //.ann, .amb files
+                                         pac: Array[Byte], //.pac file uint8_t
+                                         pes: Array[MemPeStat], //pes array
+                                         seqArray0: Array[FASTQRecord], //the first batch
+                                         seqArray1: Array[FASTQRecord], //the second batch
+                                         numOfReads: Int, //the number of reads in each batch
+                                         runOnFPGA: Boolean, //if run on FPGA
+                                         threshold: Int, //the batch threshold to run on FPGA
+                                         jniSWExtendLibPath: String = null // SWExtend Library Path
+                                         ): PairEndBatchedProfile = { //all possible alignment
+    if (jniSWExtendLibPath != null && runOnFPGA)
       System.load(jniSWExtendLibPath)
-        
+
     var pairEndBatchProflie = new PairEndBatchedProfile
     var swBatch0Profile = new SWBatchTimeBreakdown
     val readArray0 = bwaMemWorker1BatchedProfile(opt, bwt, bns, pac, pes, seqArray0, numOfReads, runOnFPGA, threshold, swBatch0Profile)
