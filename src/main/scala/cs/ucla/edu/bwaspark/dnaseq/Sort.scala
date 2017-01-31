@@ -37,7 +37,9 @@ object Sort extends Serializable {
     val paths = fs.listStatus(new Path(alignmentsRootPath)).map(ele => ele.getPath)
     val totalFilePartitions = paths.flatMap(p => fs.listStatus(p)).map(ele => ele.getPath).size
     println("Total number of new file partitions" + (totalFilePartitions/coalesceFactor))
-    var adamRecords: RDD[AlignmentRecord] = new ADAMContext(sc).loadAlignmentsFromPaths(paths)
-    adamRecords.coalesce(totalFilePartitions/coalesceFactor).adamSortReadsByReferencePosition()
+    var adamRecords = sc.loadAlignments(alignmentsRootPath)
+    adamRecords.transform(rdd => {
+      rdd.coalesce(totalFilePartitions/coalesceFactor)
+    }).sortReadsByReferencePosition()
   }
 }

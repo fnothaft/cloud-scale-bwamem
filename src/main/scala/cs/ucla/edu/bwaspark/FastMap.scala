@@ -41,6 +41,7 @@ import cs.ucla.edu.bwaspark.broadcast.ReferenceBroadcast
 
 import org.bdgenomics.formats.avro.AlignmentRecord
 import org.bdgenomics.adam.rdd.ADAMContext._
+import org.bdgenomics.adam.rdd.read.AlignedReadRDD 
 import org.bdgenomics.adam.models.{SequenceDictionary, RecordGroup, RecordGroupDictionary}
 
 import htsjdk.samtools.SAMFileHeader
@@ -491,7 +492,9 @@ object FastMap {
  
           //val adamObjRDD = sc.union(reads.mapPartitions(it2ArrayIt))
           val adamObjRDD = reads.mapPartitions(it2ArrayIt).flatMap(r => r)
-          adamObjRDD.adamParquetSave(outputPath + "/"  + folderID.toString())
+          AlignedReadRDD(adamObjRDD,
+                         seqDict,
+                         RecordGroupDictionary(Seq(readGroup))).saveAsParquet(outputPath + "/"  + folderID.toString())
           println("@Worker2: Completed")
           numProcessed += batchedReadNum
           folderID += 1
@@ -674,8 +677,10 @@ object FastMap {
         val adamRDD = singleEndFASTQRDD.map(seq => bwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.bwt, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, null, seq) )
                                        .flatMap(r => singleEndBwaMemWorker2ADAMOut(bwaMemOptGlobal.value, r.regs, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, 
                                                                                    r.seq, numProcessed, samHeader, seqDict, readGroup) )
-                                          
-        adamRDD.adamParquetSave(outputPath + "/"  + folderID.toString())
+        
+        AlignedReadRDD(adamRDD,
+                       seqDict,
+                       RecordGroupDictionary(Seq(readGroup))).saveAsParquet(outputPath + "/"  + folderID.toString())
         numProcessed += batchedReadNum
         folderID += 1
 

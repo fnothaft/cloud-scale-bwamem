@@ -7,6 +7,7 @@ package cs.ucla.edu.avro.fastq;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class PairEndFASTQRecord extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 5591944268170703483L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PairEndFASTQRecord\",\"namespace\":\"cs.ucla.edu.avro.fastq\",\"fields\":[{\"name\":\"seq0\",\"type\":{\"type\":\"record\",\"name\":\"FASTQRecord\",\"fields\":[{\"name\":\"name\",\"type\":\"bytes\"},{\"name\":\"seq\",\"type\":\"bytes\"},{\"name\":\"quality\",\"type\":\"bytes\"},{\"name\":\"seqLength\",\"type\":\"int\"},{\"name\":\"comment\",\"type\":\"bytes\",\"default\":null}]}},{\"name\":\"seq1\",\"type\":\"FASTQRecord\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public cs.ucla.edu.avro.fastq.FASTQRecord seq0;
@@ -76,17 +77,28 @@ public class PairEndFASTQRecord extends org.apache.avro.specific.SpecificRecordB
     this.seq1 = value;
   }
 
-  /** Creates a new PairEndFASTQRecord RecordBuilder */
+  /**
+   * Creates a new PairEndFASTQRecord RecordBuilder.
+   * @return A new PairEndFASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder newBuilder() {
     return new cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder();
   }
   
-  /** Creates a new PairEndFASTQRecord RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new PairEndFASTQRecord RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new PairEndFASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder newBuilder(cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder other) {
     return new cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder(other);
   }
   
-  /** Creates a new PairEndFASTQRecord RecordBuilder by copying an existing PairEndFASTQRecord instance */
+  /**
+   * Creates a new PairEndFASTQRecord RecordBuilder by copying an existing PairEndFASTQRecord instance.
+   * @param other The existing instance to copy.
+   * @return A new PairEndFASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder newBuilder(cs.ucla.edu.avro.fastq.PairEndFASTQRecord other) {
     return new cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder(other);
   }
@@ -98,85 +110,197 @@ public class PairEndFASTQRecord extends org.apache.avro.specific.SpecificRecordB
     implements org.apache.avro.data.RecordBuilder<PairEndFASTQRecord> {
 
     private cs.ucla.edu.avro.fastq.FASTQRecord seq0;
+    private cs.ucla.edu.avro.fastq.FASTQRecord.Builder seq0Builder;
     private cs.ucla.edu.avro.fastq.FASTQRecord seq1;
+    private cs.ucla.edu.avro.fastq.FASTQRecord.Builder seq1Builder;
 
     /** Creates a new Builder */
     private Builder() {
       super(cs.ucla.edu.avro.fastq.PairEndFASTQRecord.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.seq0)) {
         this.seq0 = data().deepCopy(fields()[0].schema(), other.seq0);
         fieldSetFlags()[0] = true;
       }
+      if (other.hasSeq0Builder()) {
+        this.seq0Builder = cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder(other.getSeq0Builder());
+      }
       if (isValidValue(fields()[1], other.seq1)) {
         this.seq1 = data().deepCopy(fields()[1].schema(), other.seq1);
         fieldSetFlags()[1] = true;
       }
+      if (other.hasSeq1Builder()) {
+        this.seq1Builder = cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder(other.getSeq1Builder());
+      }
     }
     
-    /** Creates a Builder by copying an existing PairEndFASTQRecord instance */
+    /**
+     * Creates a Builder by copying an existing PairEndFASTQRecord instance
+     * @param other The existing instance to copy.
+     */
     private Builder(cs.ucla.edu.avro.fastq.PairEndFASTQRecord other) {
             super(cs.ucla.edu.avro.fastq.PairEndFASTQRecord.SCHEMA$);
       if (isValidValue(fields()[0], other.seq0)) {
         this.seq0 = data().deepCopy(fields()[0].schema(), other.seq0);
         fieldSetFlags()[0] = true;
       }
+      this.seq0Builder = null;
       if (isValidValue(fields()[1], other.seq1)) {
         this.seq1 = data().deepCopy(fields()[1].schema(), other.seq1);
         fieldSetFlags()[1] = true;
       }
+      this.seq1Builder = null;
     }
 
-    /** Gets the value of the 'seq0' field */
+    /**
+      * Gets the value of the 'seq0' field.
+      * @return The value.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord getSeq0() {
       return seq0;
     }
-    
-    /** Sets the value of the 'seq0' field */
+
+    /**
+      * Sets the value of the 'seq0' field.
+      * @param value The value of 'seq0'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder setSeq0(cs.ucla.edu.avro.fastq.FASTQRecord value) {
       validate(fields()[0], value);
+      this.seq0Builder = null;
       this.seq0 = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'seq0' field has been set */
+
+    /**
+      * Checks whether the 'seq0' field has been set.
+      * @return True if the 'seq0' field has been set, false otherwise.
+      */
     public boolean hasSeq0() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'seq0' field */
+
+    /**
+     * Gets the Builder instance for the 'seq0' field and creates one if it doesn't exist yet.
+     * @return This builder.
+     */
+    public cs.ucla.edu.avro.fastq.FASTQRecord.Builder getSeq0Builder() {
+      if (seq0Builder == null) {
+        if (hasSeq0()) {
+          setSeq0Builder(cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder(seq0));
+        } else {
+          setSeq0Builder(cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder());
+        }
+      }
+      return seq0Builder;
+    }
+
+    /**
+     * Sets the Builder instance for the 'seq0' field
+     * @return This builder.
+     */
+    public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder setSeq0Builder(cs.ucla.edu.avro.fastq.FASTQRecord.Builder value) {
+      clearSeq0();
+      seq0Builder = value;
+      return this;
+    }
+
+    /**
+     * Checks whether the 'seq0' field has an active Builder instance
+     * @return True if the 'seq0' field has an active Builder instance
+     */
+    public boolean hasSeq0Builder() {
+      return seq0Builder != null;
+    }
+
+    /**
+      * Clears the value of the 'seq0' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder clearSeq0() {
       seq0 = null;
+      seq0Builder = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'seq1' field */
+    /**
+      * Gets the value of the 'seq1' field.
+      * @return The value.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord getSeq1() {
       return seq1;
     }
-    
-    /** Sets the value of the 'seq1' field */
+
+    /**
+      * Sets the value of the 'seq1' field.
+      * @param value The value of 'seq1'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder setSeq1(cs.ucla.edu.avro.fastq.FASTQRecord value) {
       validate(fields()[1], value);
+      this.seq1Builder = null;
       this.seq1 = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'seq1' field has been set */
+
+    /**
+      * Checks whether the 'seq1' field has been set.
+      * @return True if the 'seq1' field has been set, false otherwise.
+      */
     public boolean hasSeq1() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'seq1' field */
+
+    /**
+     * Gets the Builder instance for the 'seq1' field and creates one if it doesn't exist yet.
+     * @return This builder.
+     */
+    public cs.ucla.edu.avro.fastq.FASTQRecord.Builder getSeq1Builder() {
+      if (seq1Builder == null) {
+        if (hasSeq1()) {
+          setSeq1Builder(cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder(seq1));
+        } else {
+          setSeq1Builder(cs.ucla.edu.avro.fastq.FASTQRecord.newBuilder());
+        }
+      }
+      return seq1Builder;
+    }
+
+    /**
+     * Sets the Builder instance for the 'seq1' field
+     * @return This builder.
+     */
+    public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder setSeq1Builder(cs.ucla.edu.avro.fastq.FASTQRecord.Builder value) {
+      clearSeq1();
+      seq1Builder = value;
+      return this;
+    }
+
+    /**
+     * Checks whether the 'seq1' field has an active Builder instance
+     * @return True if the 'seq1' field has an active Builder instance
+     */
+    public boolean hasSeq1Builder() {
+      return seq1Builder != null;
+    }
+
+    /**
+      * Clears the value of the 'seq1' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.PairEndFASTQRecord.Builder clearSeq1() {
       seq1 = null;
+      seq1Builder = null;
       fieldSetFlags()[1] = false;
       return this;
     }
@@ -185,12 +309,37 @@ public class PairEndFASTQRecord extends org.apache.avro.specific.SpecificRecordB
     public PairEndFASTQRecord build() {
       try {
         PairEndFASTQRecord record = new PairEndFASTQRecord();
-        record.seq0 = fieldSetFlags()[0] ? this.seq0 : (cs.ucla.edu.avro.fastq.FASTQRecord) defaultValue(fields()[0]);
-        record.seq1 = fieldSetFlags()[1] ? this.seq1 : (cs.ucla.edu.avro.fastq.FASTQRecord) defaultValue(fields()[1]);
+        if (seq0Builder != null) {
+          record.seq0 = this.seq0Builder.build();
+        } else {
+          record.seq0 = fieldSetFlags()[0] ? this.seq0 : (cs.ucla.edu.avro.fastq.FASTQRecord) defaultValue(fields()[0]);
+        }
+        if (seq1Builder != null) {
+          record.seq1 = this.seq1Builder.build();
+        } else {
+          record.seq1 = fieldSetFlags()[1] ? this.seq1 : (cs.ucla.edu.avro.fastq.FASTQRecord) defaultValue(fields()[1]);
+        }
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }

@@ -1066,7 +1066,7 @@ object MemRegToADAMSAM {
     
     var cigarStrTmp: String = null
     if(alnTmp.rid >= 0) { // with coordinate
-      builder.setContig(SequenceRecord.toADAMContig(seqDict(bns.anns(alnTmp.rid).name.toString).get))   // RNAME
+      builder.setContigName(bns.anns(alnTmp.rid).name.toString)   // RNAME
       builder.setStart(alnTmp.pos)   // POS
       builder.setMapq(alnTmp.mapq)   // MAPQ
 
@@ -1118,8 +1118,8 @@ object MemRegToADAMSAM {
 
     // print the mate position if applicable
     if(alnMateTmp != null && alnMateTmp.rid >= 0) {
-      if(alnTmp.rid == alnMateTmp.rid) builder.setMateContig(SequenceRecord.toADAMContig(seqDict(bns.anns(alnTmp.rid).name.toString).get))   // RNEXT
-      else builder.setMateContig(SequenceRecord.toADAMContig(seqDict(bns.anns(alnMateTmp.rid).name.toString).get)) 
+      if(alnTmp.rid == alnMateTmp.rid) builder.setMateContigName(bns.anns(alnTmp.rid).name.toString)   // RNEXT
+      else builder.setMateContigName(bns.anns(alnMateTmp.rid).name.toString)
       builder.setMateAlignmentStart(alnMateTmp.pos)   // PNEXT
 
       if(alnMateTmp.nCigar > 0) {   // aligned
@@ -1314,19 +1314,7 @@ object MemRegToADAMSAM {
     // Note that the alignments are generated from aligner but not from an input SAM file. 
     // Therefore, we should have only one read group.
     builder.setRecordGroupName(readGroup.recordGroupName)
-           .setRecordGroupSequencingCenter(readGroup.sequencingCenter.getOrElse(null))
-           .setRecordGroupDescription(readGroup.description.getOrElse(null))
-           .setRecordGroupFlowOrder(readGroup.flowOrder.getOrElse(null))
-           .setRecordGroupKeySequence(readGroup.keySequence.getOrElse(null))
-           .setRecordGroupLibrary(readGroup.library.getOrElse(null))
-           .setRecordGroupPlatform(readGroup.platform.getOrElse(null))
-           .setRecordGroupPlatformUnit(readGroup.platformUnit.getOrElse(null))
            .setRecordGroupSample(readGroup.sample)
-
-    if(readGroup.runDateEpoch.getOrElse(null) != null)
-      builder.setRecordGroupRunDateEpoch(readGroup.runDateEpoch.get)
-    if(readGroup.predictedMedianInsertSize.getOrElse(null) != null)
-      builder.setRecordGroupPredictedMedianInsertSize(readGroup.predictedMedianInsertSize.get)
 
     builder.build
   }

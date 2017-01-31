@@ -7,6 +7,7 @@ package cs.ucla.edu.avro.fastq;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = 2439475324042583879L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"FASTQRecord\",\"namespace\":\"cs.ucla.edu.avro.fastq\",\"fields\":[{\"name\":\"name\",\"type\":\"bytes\"},{\"name\":\"seq\",\"type\":\"bytes\"},{\"name\":\"quality\",\"type\":\"bytes\"},{\"name\":\"seqLength\",\"type\":\"int\"},{\"name\":\"comment\",\"type\":\"bytes\",\"default\":null}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.nio.ByteBuffer name;
@@ -133,17 +134,28 @@ public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase imp
     this.comment = value;
   }
 
-  /** Creates a new FASTQRecord RecordBuilder */
+  /**
+   * Creates a new FASTQRecord RecordBuilder.
+   * @return A new FASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.FASTQRecord.Builder newBuilder() {
     return new cs.ucla.edu.avro.fastq.FASTQRecord.Builder();
   }
   
-  /** Creates a new FASTQRecord RecordBuilder by copying an existing Builder */
+  /**
+   * Creates a new FASTQRecord RecordBuilder by copying an existing Builder.
+   * @param other The existing builder to copy.
+   * @return A new FASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.FASTQRecord.Builder newBuilder(cs.ucla.edu.avro.fastq.FASTQRecord.Builder other) {
     return new cs.ucla.edu.avro.fastq.FASTQRecord.Builder(other);
   }
   
-  /** Creates a new FASTQRecord RecordBuilder by copying an existing FASTQRecord instance */
+  /**
+   * Creates a new FASTQRecord RecordBuilder by copying an existing FASTQRecord instance.
+   * @param other The existing instance to copy.
+   * @return A new FASTQRecord RecordBuilder
+   */
   public static cs.ucla.edu.avro.fastq.FASTQRecord.Builder newBuilder(cs.ucla.edu.avro.fastq.FASTQRecord other) {
     return new cs.ucla.edu.avro.fastq.FASTQRecord.Builder(other);
   }
@@ -165,7 +177,10 @@ public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase imp
       super(cs.ucla.edu.avro.fastq.FASTQRecord.SCHEMA$);
     }
     
-    /** Creates a Builder by copying an existing Builder */
+    /**
+     * Creates a Builder by copying an existing Builder.
+     * @param other The existing Builder to copy.
+     */
     private Builder(cs.ucla.edu.avro.fastq.FASTQRecord.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.name)) {
@@ -190,7 +205,10 @@ public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
     
-    /** Creates a Builder by copying an existing FASTQRecord instance */
+    /**
+     * Creates a Builder by copying an existing FASTQRecord instance
+     * @param other The existing instance to copy.
+     */
     private Builder(cs.ucla.edu.avro.fastq.FASTQRecord other) {
             super(cs.ucla.edu.avro.fastq.FASTQRecord.SCHEMA$);
       if (isValidValue(fields()[0], other.name)) {
@@ -215,124 +233,194 @@ public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
 
-    /** Gets the value of the 'name' field */
+    /**
+      * Gets the value of the 'name' field.
+      * @return The value.
+      */
     public java.nio.ByteBuffer getName() {
       return name;
     }
-    
-    /** Sets the value of the 'name' field */
+
+    /**
+      * Sets the value of the 'name' field.
+      * @param value The value of 'name'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder setName(java.nio.ByteBuffer value) {
       validate(fields()[0], value);
       this.name = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
-    
-    /** Checks whether the 'name' field has been set */
+
+    /**
+      * Checks whether the 'name' field has been set.
+      * @return True if the 'name' field has been set, false otherwise.
+      */
     public boolean hasName() {
       return fieldSetFlags()[0];
     }
-    
-    /** Clears the value of the 'name' field */
+
+
+    /**
+      * Clears the value of the 'name' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder clearName() {
       name = null;
       fieldSetFlags()[0] = false;
       return this;
     }
 
-    /** Gets the value of the 'seq' field */
+    /**
+      * Gets the value of the 'seq' field.
+      * @return The value.
+      */
     public java.nio.ByteBuffer getSeq() {
       return seq;
     }
-    
-    /** Sets the value of the 'seq' field */
+
+    /**
+      * Sets the value of the 'seq' field.
+      * @param value The value of 'seq'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder setSeq(java.nio.ByteBuffer value) {
       validate(fields()[1], value);
       this.seq = value;
       fieldSetFlags()[1] = true;
       return this; 
     }
-    
-    /** Checks whether the 'seq' field has been set */
+
+    /**
+      * Checks whether the 'seq' field has been set.
+      * @return True if the 'seq' field has been set, false otherwise.
+      */
     public boolean hasSeq() {
       return fieldSetFlags()[1];
     }
-    
-    /** Clears the value of the 'seq' field */
+
+
+    /**
+      * Clears the value of the 'seq' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder clearSeq() {
       seq = null;
       fieldSetFlags()[1] = false;
       return this;
     }
 
-    /** Gets the value of the 'quality' field */
+    /**
+      * Gets the value of the 'quality' field.
+      * @return The value.
+      */
     public java.nio.ByteBuffer getQuality() {
       return quality;
     }
-    
-    /** Sets the value of the 'quality' field */
+
+    /**
+      * Sets the value of the 'quality' field.
+      * @param value The value of 'quality'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder setQuality(java.nio.ByteBuffer value) {
       validate(fields()[2], value);
       this.quality = value;
       fieldSetFlags()[2] = true;
       return this; 
     }
-    
-    /** Checks whether the 'quality' field has been set */
+
+    /**
+      * Checks whether the 'quality' field has been set.
+      * @return True if the 'quality' field has been set, false otherwise.
+      */
     public boolean hasQuality() {
       return fieldSetFlags()[2];
     }
-    
-    /** Clears the value of the 'quality' field */
+
+
+    /**
+      * Clears the value of the 'quality' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder clearQuality() {
       quality = null;
       fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'seqLength' field */
+    /**
+      * Gets the value of the 'seqLength' field.
+      * @return The value.
+      */
     public java.lang.Integer getSeqLength() {
       return seqLength;
     }
-    
-    /** Sets the value of the 'seqLength' field */
+
+    /**
+      * Sets the value of the 'seqLength' field.
+      * @param value The value of 'seqLength'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder setSeqLength(int value) {
       validate(fields()[3], value);
       this.seqLength = value;
       fieldSetFlags()[3] = true;
       return this; 
     }
-    
-    /** Checks whether the 'seqLength' field has been set */
+
+    /**
+      * Checks whether the 'seqLength' field has been set.
+      * @return True if the 'seqLength' field has been set, false otherwise.
+      */
     public boolean hasSeqLength() {
       return fieldSetFlags()[3];
     }
-    
-    /** Clears the value of the 'seqLength' field */
+
+
+    /**
+      * Clears the value of the 'seqLength' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder clearSeqLength() {
       fieldSetFlags()[3] = false;
       return this;
     }
 
-    /** Gets the value of the 'comment' field */
+    /**
+      * Gets the value of the 'comment' field.
+      * @return The value.
+      */
     public java.nio.ByteBuffer getComment() {
       return comment;
     }
-    
-    /** Sets the value of the 'comment' field */
+
+    /**
+      * Sets the value of the 'comment' field.
+      * @param value The value of 'comment'.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder setComment(java.nio.ByteBuffer value) {
       validate(fields()[4], value);
       this.comment = value;
       fieldSetFlags()[4] = true;
       return this; 
     }
-    
-    /** Checks whether the 'comment' field has been set */
+
+    /**
+      * Checks whether the 'comment' field has been set.
+      * @return True if the 'comment' field has been set, false otherwise.
+      */
     public boolean hasComment() {
       return fieldSetFlags()[4];
     }
-    
-    /** Clears the value of the 'comment' field */
+
+
+    /**
+      * Clears the value of the 'comment' field.
+      * @return This builder.
+      */
     public cs.ucla.edu.avro.fastq.FASTQRecord.Builder clearComment() {
       comment = null;
       fieldSetFlags()[4] = false;
@@ -354,4 +442,21 @@ public class FASTQRecord extends org.apache.avro.specific.SpecificRecordBase imp
       }
     }
   }
+
+  private static final org.apache.avro.io.DatumWriter
+    WRITER$ = new org.apache.avro.specific.SpecificDatumWriter(SCHEMA$);  
+
+  @Override public void writeExternal(java.io.ObjectOutput out)
+    throws java.io.IOException {
+    WRITER$.write(this, org.apache.avro.specific.SpecificData.getEncoder(out));
+  }
+
+  private static final org.apache.avro.io.DatumReader
+    READER$ = new org.apache.avro.specific.SpecificDatumReader(SCHEMA$);  
+
+  @Override public void readExternal(java.io.ObjectInput in)
+    throws java.io.IOException {
+    READER$.read(this, org.apache.avro.specific.SpecificData.getDecoder(in));
+  }
+
 }
