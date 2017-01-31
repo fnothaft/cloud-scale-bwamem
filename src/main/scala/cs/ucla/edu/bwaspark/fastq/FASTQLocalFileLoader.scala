@@ -159,7 +159,7 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
     var i: Int = 0
 
     while (!isEOF) {
-      val serializedRecords = batchedRDDReader(reader, sc, batchedLineNum, filePartitionNum).map(new SerializableFASTQRecord(_))
+      val serializedRecords = batchedRDDReader(reader, sc, batchedLineNum, filePartitionNum)
       if (serializedRecords.length > 0) {
         val pairRDD = sc.parallelize(serializedRecords, filePartitionNum).map(rec => (null, rec))
         val job = new Job(pairRDD.context.hadoopConfiguration)
@@ -242,10 +242,10 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
         val quality = encoder.encode(CharBuffer.wrap(reader1.readLine()))
         if (lineFields.length >= 2) {
           val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap(comment)))
-          pairEndRecord.setSeq0(new SerializableFASTQRecord(record))
+          pairEndRecord.setSeq0(record)
         } else {
           val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap("")))
-          pairEndRecord.setSeq0(new SerializableFASTQRecord(record))
+          pairEndRecord.setSeq0(record)
         }
 
         line = reader2.readLine
@@ -290,10 +290,10 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
           val quality = encoder.encode(CharBuffer.wrap(reader2.readLine()))
           if (lineFields.length >= 2) {
             val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap(comment)))
-            pairEndRecord.setSeq1(new SerializableFASTQRecord(record))
+            pairEndRecord.setSeq1(record)
           } else {
             val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap("")))
-            pairEndRecord.setSeq1(new SerializableFASTQRecord(record))
+            pairEndRecord.setSeq1(record)
           }
         }
 
@@ -361,7 +361,7 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
    *  @param rawRead the raw read store in the String format
    *  @return a read record
    */
-  def RawRead2FASTQRecord(rawRead: RawRead): SerializableFASTQRecord = {
+  def RawRead2FASTQRecord(rawRead: RawRead): FASTQRecord = {
     val charset = Charset.forName("ASCII")
     val encoder = charset.newEncoder
     val lineFields = rawRead.name.split(" ")
@@ -399,13 +399,9 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
     val quality = encoder.encode(CharBuffer.wrap(rawRead.qual))
 
     if (lineFields.length >= 2) {
-      val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap(comment)))
-      val serializedRecord = new SerializableFASTQRecord(record)
-      serializedRecord
+      new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap(comment)))
     } else {
-      val record = new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap("")))
-      val serializedRecord = new SerializableFASTQRecord(record)
-      serializedRecord
+      new FASTQRecord(name, seq, quality, seqLength, encoder.encode(CharBuffer.wrap("")))
     }
   }
 
@@ -464,8 +460,7 @@ class FASTQLocalFileLoader(batchedLineNum: Int) {
     var isHDFSWriteDone: Boolean = true // a done signal for writing data to HDFS
 
     while (!isEOF) {
-      //val serializedRecords = batchedPairEndRDDReader(reader1, reader2, sc, batchedLineNum, filePartitionNum).map(new SerializablePairEndFASTQRecord(_)) // old implementation
-      val serializedRecords = parallelBatchedPairEndRDDReader(reader1, reader2, batchedLineNum).map(new SerializablePairEndFASTQRecord(_))
+      val serializedRecords = parallelBatchedPairEndRDDReader(reader1, reader2, batchedLineNum)
       if (serializedRecords.length > 0) {
 
         println("[DEBUG] Main Thread, Before while loop: isHDFSWriteDone = " + isHDFSWriteDone)
