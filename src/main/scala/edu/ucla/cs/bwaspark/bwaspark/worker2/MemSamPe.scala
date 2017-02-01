@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker2
+package edu.ucla.cs.bwaspark.worker2
 
 import org.apache.commons.math3.special.Erf.erfc
 
@@ -24,15 +24,15 @@ import scala.math.log
 import scala.math.abs
 import scala.collection.immutable.Vector
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup.memSortAndDedup
-import cs.ucla.edu.bwaspark.util.BNTSeqUtil.bnsGetSeq
-import cs.ucla.edu.bwaspark.util.SWUtil.SWAlign2
-import cs.ucla.edu.bwaspark.worker2.MemMarkPrimarySe.{ hash64, memMarkPrimarySe }
-import cs.ucla.edu.bwaspark.worker2.MemRegToADAMSAM._
-import cs.ucla.edu.bwaspark.jni.{ MateSWJNI, MateSWType, SeqSWType, RefSWType }
-import cs.ucla.edu.bwaspark.sam.SAMHeader
-import cs.ucla.edu.bwaspark.util.LocusEncode._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.worker1.MemSortAndDedup.memSortAndDedup
+import edu.ucla.cs.bwaspark.util.BNTSeqUtil.bnsGetSeq
+import edu.ucla.cs.bwaspark.util.SWUtil.SWAlign2
+import edu.ucla.cs.bwaspark.worker2.MemMarkPrimarySe.{ hash64, memMarkPrimarySe }
+import edu.ucla.cs.bwaspark.worker2.MemRegToADAMSAM._
+import edu.ucla.cs.bwaspark.jni.{ MateSWJNI, MateSWType, SeqSWType, RefSWType }
+import edu.ucla.cs.bwaspark.sam.SAMHeader
+import edu.ucla.cs.bwaspark.util.LocusEncode._
 
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Contig, Fragment }
 import org.bdgenomics.adam.models.{ SequenceRecord, SequenceDictionary, RecordGroup }

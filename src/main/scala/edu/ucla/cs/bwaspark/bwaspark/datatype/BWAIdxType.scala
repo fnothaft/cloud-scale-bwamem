@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.{ FileInputStream, IOException }
 import java.nio.channels.FileChannel
-import cs.ucla.edu.bwaspark.datatype.BinaryFileReadUtil._
+import edu.ucla.cs.bwaspark.datatype.BinaryFileReadUtil._
 import scala.Serializable
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;

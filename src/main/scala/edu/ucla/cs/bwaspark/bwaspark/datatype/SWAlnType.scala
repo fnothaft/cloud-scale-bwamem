@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 class SWAlnType {
   var score: Int = 0 // best score

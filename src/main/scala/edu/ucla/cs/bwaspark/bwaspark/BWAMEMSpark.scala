@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark
+package edu.ucla.cs.bwaspark
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -24,12 +24,12 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.MutableList
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.worker1.BWAMemWorker1._
-import cs.ucla.edu.bwaspark.worker2.BWAMemWorker2._
-import cs.ucla.edu.bwaspark.FastMap.memMain
-import cs.ucla.edu.bwaspark.commandline._
-import cs.ucla.edu.bwaspark.dnaseq._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.worker1.BWAMemWorker1._
+import edu.ucla.cs.bwaspark.worker2.BWAMemWorker2._
+import edu.ucla.cs.bwaspark.FastMap.memMain
+import edu.ucla.cs.bwaspark.commandline._
+import edu.ucla.cs.bwaspark.dnaseq._
 
 import org.bdgenomics.adam.rdd.ADAMContext._
 

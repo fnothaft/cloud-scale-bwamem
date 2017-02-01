@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.jni
+package edu.ucla.cs.bwaspark.jni
 
 class SeqSWType {
   var readIdx: Int = -1

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark
+package edu.ucla.cs.bwaspark
 
 object Usage {
   val usage: String = "Usage 1: upload raw FASTQ file(s) to HDFS\n" +

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark
+package edu.ucla.cs.bwaspark
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -23,15 +23,15 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.worker1.BWAMemWorker1._
-import cs.ucla.edu.bwaspark.worker1.BWAMemWorker1Batched._
-import cs.ucla.edu.bwaspark.worker2.BWAMemWorker2._
-import cs.ucla.edu.bwaspark.worker2.MemSamPe._
-import cs.ucla.edu.bwaspark.sam.SAMHeader
-import cs.ucla.edu.bwaspark.util.SWUtil._
-import cs.ucla.edu.bwaspark.commandline._
-import cs.ucla.edu.bwaspark.broadcast.ReferenceBroadcast
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.worker1.BWAMemWorker1._
+import edu.ucla.cs.bwaspark.worker1.BWAMemWorker1Batched._
+import edu.ucla.cs.bwaspark.worker2.BWAMemWorker2._
+import edu.ucla.cs.bwaspark.worker2.MemSamPe._
+import edu.ucla.cs.bwaspark.sam.SAMHeader
+import edu.ucla.cs.bwaspark.util.SWUtil._
+import edu.ucla.cs.bwaspark.commandline._
+import edu.ucla.cs.bwaspark.broadcast.ReferenceBroadcast
 
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 import org.bdgenomics.adam.rdd.ADAMContext._

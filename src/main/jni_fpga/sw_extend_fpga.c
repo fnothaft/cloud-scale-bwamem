@@ -113,7 +113,7 @@ int send_int_array(int* int_buf, int buf_size) {
 }
 
 
-JNIEXPORT jshortArray JNICALL Java_cs_ucla_edu_bwaspark_jni_SWExtendFPGAJNI_swExtendFPGAJNI
+JNIEXPORT jshortArray JNICALL Java_edu.ucla.cs_bwaspark_jni_SWExtendFPGAJNI_swExtendFPGAJNI
 (JNIEnv *env, jobject thisObj, jint retTaskNum, jbyteArray arrayIn)
 {
   // shared memory

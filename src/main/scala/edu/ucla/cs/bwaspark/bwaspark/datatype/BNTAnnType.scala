@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream

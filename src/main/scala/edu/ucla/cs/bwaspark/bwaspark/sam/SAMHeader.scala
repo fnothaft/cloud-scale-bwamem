@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.sam
+package edu.ucla.cs.bwaspark.sam
 
-import cs.ucla.edu.bwaspark.datatype.BNTSeqType
+import edu.ucla.cs.bwaspark.datatype.BNTSeqType
 
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream

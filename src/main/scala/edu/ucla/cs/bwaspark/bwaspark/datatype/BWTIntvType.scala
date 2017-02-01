@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 class BWTIntvType(startPoint_l: Int, //uint32_t
                   endPoint_l: Int, //uint32_t

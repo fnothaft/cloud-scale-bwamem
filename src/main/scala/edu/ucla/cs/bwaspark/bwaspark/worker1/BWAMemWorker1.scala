@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
-import cs.ucla.edu.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.datatype._
 import scala.collection.mutable.MutableList
 import java.util.TreeSet
 import java.util.Comparator
-import cs.ucla.edu.bwaspark.worker1.MemChain._
-import cs.ucla.edu.bwaspark.worker1.MemChainFilter._
-import cs.ucla.edu.bwaspark.worker1.MemChainToAlign._
-import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup._
-import cs.ucla.edu.bwaspark.util.LocusEncode._
+import edu.ucla.cs.bwaspark.worker1.MemChain._
+import edu.ucla.cs.bwaspark.worker1.MemChainFilter._
+import edu.ucla.cs.bwaspark.worker1.MemChainToAlign._
+import edu.ucla.cs.bwaspark.worker1.MemSortAndDedup._
+import edu.ucla.cs.bwaspark.util.LocusEncode._
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 
 //this standalone object defines the main job of BWA MEM:

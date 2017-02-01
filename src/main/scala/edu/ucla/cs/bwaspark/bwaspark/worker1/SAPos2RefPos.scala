@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
-import cs.ucla.edu.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.datatype._
 
 //standalone object for transforming from position in suffix array
 //to position in reference genome

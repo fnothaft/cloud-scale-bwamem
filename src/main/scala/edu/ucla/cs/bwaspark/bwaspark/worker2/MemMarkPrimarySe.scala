@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker2
+package edu.ucla.cs.bwaspark.worker2
 
 import scala.List
 import scala.math.abs
 
-import cs.ucla.edu.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.datatype._
 
 //MemMarkPrimarySe
 object MemMarkPrimarySe {

@@ -55,44 +55,44 @@ debug_free(void *p, char *file, int line)
     free(rp);
 }*/
 
-JNIEXPORT jobjectArray JNICALL Java_cs_ucla_edu_bwaspark_jni_MateSWJNI_mateSWJNI
+JNIEXPORT jobjectArray JNICALL Java_edu.ucla.cs_bwaspark_jni_MateSWJNI_mateSWJNI
 (JNIEnv *env, jobject thisObj, jobject opt, jlong pacLen, jobjectArray pes, jint groupSize, 
  jobjectArray inSeqSWArray, jobjectArray inMateSWArray, jobjectArray inRefSWArray, jintArray refSizeArray)
 {
   int i = 0;
 
   // get Java classes  
-  jclass MemAlnRegTypeClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/datatype/MemAlnRegType");
+  jclass MemAlnRegTypeClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/datatype/MemAlnRegType");
 #ifdef DEBUG
   if(MemAlnRegTypeClass == NULL) fprintf(stderr, "[JNI/C] Class MemAlnRegType not found\n");
   else fprintf(stderr, "[JNI/C] Class MemAlnRegType found\n");
 #endif
 
-  jclass MemOptTypeClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/datatype/MemOptType");
+  jclass MemOptTypeClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/datatype/MemOptType");
 #ifdef DEBUG
   if(MemOptTypeClass == NULL) fprintf(stderr, "[JNI/C] Class MemOptType not found\n");
   else fprintf(stderr, "[JNI/C] Class MemOptType found\n");
 #endif
 
-  jclass MemPeStatClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/datatype/MemPeStat");
+  jclass MemPeStatClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/datatype/MemPeStat");
 #ifdef DEBUG
   if(MemPeStatClass == NULL) fprintf(stderr, "[JNI/C] Class MemPeStat not found\n");
   else fprintf(stderr, "[JNI/C] Class MemPeStat found\n");
 #endif
 
-  jclass MateSWTypeClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/jni/MateSWType");
+  jclass MateSWTypeClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/jni/MateSWType");
 #ifdef DEBUG
   if(MateSWTypeClass == NULL) fprintf(stderr, "[JNI/C] Class MateSWType not found\n");
   else fprintf(stderr, "[JNI/C] Class MateSWType found\n");
 #endif
 
-  jclass SeqSWTypeClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/jni/SeqSWType");
+  jclass SeqSWTypeClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/jni/SeqSWType");
 #ifdef DEBUG
   if(SeqSWTypeClass == NULL) fprintf(stderr, "[JNI/C] Class SeqSWType not found\n");
   else fprintf(stderr, "[JNI/C] Class SeqSWType found\n");
 #endif
 
-  jclass RefSWTypeClass = (*env)->FindClass(env, "cs/ucla/edu/bwaspark/jni/RefSWType");
+  jclass RefSWTypeClass = (*env)->FindClass(env, "edu.ucla.cs/bwaspark/jni/RefSWType");
 #ifdef DEBUG
   if(RefSWTypeClass == NULL) fprintf(stderr, "[JNI/C] Class RefSWType not found\n");
   else fprintf(stderr, "[JNI/C] Class RefSWType found\n");
@@ -144,7 +144,7 @@ JNIEXPORT jobjectArray JNICALL Java_cs_ucla_edu_bwaspark_jni_MateSWJNI_mateSWJNI
   jfieldID readIdxId = (*env)->GetFieldID(env, MateSWTypeClass, "readIdx", "I");
   jfieldID pairIdxId = (*env)->GetFieldID(env, MateSWTypeClass, "pairIdx", "I");
   jfieldID regIdxId = (*env)->GetFieldID(env, MateSWTypeClass, "regIdx", "I");
-  jfieldID alnRegId = (*env)->GetFieldID(env, MateSWTypeClass, "alnReg", "Lcs/ucla/edu/bwaspark/datatype/MemAlnRegType;");
+  jfieldID alnRegId = (*env)->GetFieldID(env, MateSWTypeClass, "alnReg", "Ledu.ucla.cs/bwaspark/datatype/MemAlnRegType;");
 
   // get field IDs: RefSWType
   jfieldID refReadIdxId = (*env)->GetFieldID(env, RefSWTypeClass, "readIdx", "I");

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.broadcast
+package edu.ucla.cs.bwaspark.broadcast
 
 import java.io._
 
@@ -26,7 +26,7 @@ import org.apache.spark.util.Utils
 
 import scala.reflect.ClassTag
 
-import cs.ucla.edu.bwaspark.datatype.BWAIdxType
+import edu.ucla.cs.bwaspark.datatype.BWAIdxType
 
 class ReferenceBroadcast(bd: Broadcast[BWAIdxType], isFromLocal: Boolean, path: String) extends Serializable {
   lazy val reference: BWAIdxType = init()

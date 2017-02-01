@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
 import scala.collection.mutable.MutableList
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.util.BNTSeqUtil._
-import cs.ucla.edu.bwaspark.util.SWUtil._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.util.BNTSeqUtil._
+import edu.ucla.cs.bwaspark.util.SWUtil._
 
 // Used for read test input data
 import java.io.{ FileReader, BufferedReader }

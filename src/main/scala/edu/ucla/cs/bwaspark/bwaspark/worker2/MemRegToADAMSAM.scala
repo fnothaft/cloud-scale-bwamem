@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker2
+package edu.ucla.cs.bwaspark.worker2
 
 import scala.collection.mutable.MutableList
 import scala.collection.immutable.Vector
 import scala.math.log
 import scala.math.abs
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.sam.SAMHeader
-import cs.ucla.edu.bwaspark.util.BNTSeqUtil._
-import cs.ucla.edu.bwaspark.util.SWUtil._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.sam.SAMHeader
+import edu.ucla.cs.bwaspark.util.BNTSeqUtil._
+import edu.ucla.cs.bwaspark.util.SWUtil._
 
 import org.bdgenomics.formats.avro.AlignmentRecord
 import org.bdgenomics.adam.models.{ SequenceRecord, SequenceDictionary, RecordGroup }

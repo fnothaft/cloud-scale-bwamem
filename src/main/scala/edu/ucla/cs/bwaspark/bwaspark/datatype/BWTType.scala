@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 
-import cs.ucla.edu.bwaspark.datatype.BinaryFileReadUtil._
+import edu.ucla.cs.bwaspark.datatype.BinaryFileReadUtil._
 
 class BWTType extends Serializable {
   // Data Structure

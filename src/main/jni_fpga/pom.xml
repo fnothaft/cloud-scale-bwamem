@@ -2,7 +2,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>cs.ucla.edu</groupId>
+  <groupId>edu.ucla.cs</groupId>
   <artifactId>jniSWExtend</artifactId>
   <version>0.2.2</version>
   <name>JNI Smith-Waterman Extend on FPGA</name>
@@ -11,7 +11,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>cs.ucla.edu</groupId>
+      <groupId>edu.ucla.cs</groupId>
       <artifactId>cloud-scale-bwamem</artifactId>
       <version>0.2.2</version>
       <type>jar</type>
@@ -74,7 +74,7 @@
                   <workingDirectory>../../../target</workingDirectory>
                   <javahOutputFileName>jni_sw_extend.h</javahOutputFileName>
                   <javahClassNames>
-                      <javahClassName>cs.ucla.edu.bwaspark.jni.SWExtendFPGAJNI</javahClassName>
+                      <javahClassName>edu.ucla.cs.bwaspark.jni.SWExtendFPGAJNI</javahClassName>
                   </javahClassNames>
               </configuration>
               <goals>

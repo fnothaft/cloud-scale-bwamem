@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.util.LocusEncode._
-import cs.ucla.edu.bwaspark.worker1.MemChain._
-import cs.ucla.edu.bwaspark.worker1.MemChainFilter._
-import cs.ucla.edu.bwaspark.worker1.MemChainToAlignBatched._
-import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.util.LocusEncode._
+import edu.ucla.cs.bwaspark.worker1.MemChain._
+import edu.ucla.cs.bwaspark.worker1.MemChainFilter._
+import edu.ucla.cs.bwaspark.worker1.MemChainToAlignBatched._
+import edu.ucla.cs.bwaspark.worker1.MemSortAndDedup._
 import java.util.TreeSet
 import java.util.Comparator
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }

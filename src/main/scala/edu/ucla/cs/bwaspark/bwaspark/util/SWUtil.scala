@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.util
+package edu.ucla.cs.bwaspark.util
 
 import scala.util.control.Breaks._
 import scala.math.abs
 import scala.collection.immutable.Vector
 
-import cs.ucla.edu.bwaspark.datatype.{ CigarType, CigarSegType, SWAlnType, MemOptType }
+import edu.ucla.cs.bwaspark.datatype.{ CigarType, CigarSegType, SWAlnType, MemOptType }
 
 object SWUtil {
   private val MINUS_INF = -0x40000000

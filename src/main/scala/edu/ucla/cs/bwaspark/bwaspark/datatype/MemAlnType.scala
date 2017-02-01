@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 class MemAlnType {
   var pos: Long = 0 // forward strand 5'-end mapping position

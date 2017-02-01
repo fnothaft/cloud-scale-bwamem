@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
 import scala.util.control.Breaks._
 
-import cs.ucla.edu.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.datatype._
 
 object MemSortAndDedup {
   /**

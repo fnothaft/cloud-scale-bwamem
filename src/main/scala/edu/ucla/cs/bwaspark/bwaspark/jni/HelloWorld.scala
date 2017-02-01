@@ -1,4 +1,4 @@
-package cs.ucla.edu.bwaspark.jni
+package edu.ucla.cs.bwaspark.jni
 
 class HelloWorld {
   @native def helloWorld

@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker1
+package edu.ucla.cs.bwaspark.worker1
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.worker1.SAPos2RefPos._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.worker1.SAPos2RefPos._
 import java.util.{ Comparator, TreeSet }
 import scala.collection.mutable.MutableList
 import scala.math._

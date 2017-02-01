@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.jni
+package edu.ucla.cs.bwaspark.jni
 
-import cs.ucla.edu.bwaspark.datatype.{ MemOptType, MemPeStat, FASTQSingleNode }
+import edu.ucla.cs.bwaspark.datatype.{ MemOptType, MemPeStat, FASTQSingleNode }
 
 class MateSWJNI {
   @native def mateSWJNI(opt: MemOptType, pacLen: Long, pes: Array[MemPeStat], groupSize: Int, seqsPairs: Array[SeqSWType],

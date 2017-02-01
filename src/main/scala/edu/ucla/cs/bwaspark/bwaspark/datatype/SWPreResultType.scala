@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.datatype
+package edu.ucla.cs.bwaspark.datatype
 
 class SWPreResultType(rmax_c: Array[Long],
                       srt_c: Array[SRTType],

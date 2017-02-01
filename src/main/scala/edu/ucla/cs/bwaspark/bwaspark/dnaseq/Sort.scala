@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.dnaseq
+package edu.ucla.cs.bwaspark.dnaseq
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD

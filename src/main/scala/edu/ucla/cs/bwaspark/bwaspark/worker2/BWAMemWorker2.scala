@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.worker2
+package edu.ucla.cs.bwaspark.worker2
 
 import scala.collection.immutable.Vector
 
-import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.worker2.MemMarkPrimarySe._
-import cs.ucla.edu.bwaspark.worker2.MemRegToADAMSAM._
-import cs.ucla.edu.bwaspark.worker2.MemSamPe._
-import cs.ucla.edu.bwaspark.sam.SAMHeader
-import cs.ucla.edu.bwaspark.util.LocusEncode._
+import edu.ucla.cs.bwaspark.datatype._
+import edu.ucla.cs.bwaspark.worker2.MemMarkPrimarySe._
+import edu.ucla.cs.bwaspark.worker2.MemRegToADAMSAM._
+import edu.ucla.cs.bwaspark.worker2.MemSamPe._
+import edu.ucla.cs.bwaspark.sam.SAMHeader
+import edu.ucla.cs.bwaspark.util.LocusEncode._
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 import org.bdgenomics.adam.models.{ SequenceDictionary, RecordGroup }
 import scala.collection.JavaConversions._

@@ -1,5 +1,5 @@
 <project>
-  <groupId>cs.ucla.edu</groupId>
+  <groupId>edu.ucla.cs</groupId>
   <artifactId>cloud-scale-bwamem</artifactId>
   <modelVersion>4.0.0</modelVersion>
   <version>0.2.2</version>
@@ -81,7 +81,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>cs.ucla.edu.bwaspark.BWAMEMSpark</mainClass>
+              <mainClass>edu.ucla.cs.bwaspark.BWAMEMSpark</mainClass>
               <classpathLayoutType>custom</classpathLayoutType>
               <customClasspathLayout>lib/$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout>
             </manifest>

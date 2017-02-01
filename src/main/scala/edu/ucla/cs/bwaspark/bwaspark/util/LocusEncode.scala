@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.util
+package edu.ucla.cs.bwaspark.util
 
 object LocusEncode {
   /**

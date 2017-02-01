@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cs.ucla.edu.bwaspark.commandline
+package edu.ucla.cs.bwaspark.commandline
 
 class BWAMEMCommand {
   var fastaInputPath: String = "" // the local BWA index files (bns, pac, and so on)
