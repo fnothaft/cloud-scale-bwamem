@@ -29,8 +29,6 @@ import cs.ucla.edu.bwaspark.worker1.BWAMemWorker1Batched._
 import cs.ucla.edu.bwaspark.worker2.BWAMemWorker2._
 import cs.ucla.edu.bwaspark.worker2.MemSamPe._
 import cs.ucla.edu.bwaspark.sam.SAMHeader
-import cs.ucla.edu.bwaspark.sam.SAMWriter
-import cs.ucla.edu.bwaspark.sam.SAMHDFSWriter
 import cs.ucla.edu.bwaspark.util.SWUtil._
 import cs.ucla.edu.bwaspark.commandline._
 import cs.ucla.edu.bwaspark.broadcast.ReferenceBroadcast
@@ -85,7 +83,6 @@ object FastMap {
     val readGroupString = bwamemArgs.headerLine // complete read group header line: Example: @RG\tID:foo\tSM:bar
 
     val samHeader = new SAMHeader
-    var adamHeader = new SequenceDictionary
     val samFileHeader = new SAMFileHeader
     var seqDict: SequenceDictionary = null
     var readGroupDict: RecordGroupDictionary = null
@@ -120,8 +117,6 @@ object FastMap {
     bwaMemOpt.flag |= MEM_F_NO_MULTI
 
     // write SAM header
-    println("Output choice: " + outputChoice)
-
     samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion, readGroupString, samFileHeader)
     seqDict = SequenceDictionary(samFileHeader)
     readGroupDict = RecordGroupDictionary.fromSAMHeader(samFileHeader)
@@ -175,9 +170,6 @@ object FastMap {
     val fpgaSWExtThreshold = bwamemArgs.fpgaSWExtThreshold // the threshold of using FPGA accelerator for SWExtend
     val jniSWExtendLibPath = bwamemArgs.jniSWExtendLibPath // (optional) the JNI library path used for SWExtend FPGA acceleration
 
-    // Initialize output writer
-    val samWriter = new SAMWriter
-    val samHDFSWriter = new SAMHDFSWriter(outputPath)
     // broadcast shared variables
     // If each node has its own copy of human reference genome, we can bypass the broadcast from the driver node.
     // Otherwise, we need to use Spark broadcast
@@ -199,7 +191,6 @@ object FastMap {
     var ioWaitingTime: Long = 0
 
     var numProcessed: Long = 0
-    var isSAMWriteDone: Boolean = true // a done signal for writing SAM file
 
     var pes: Array[MemPeStat] = new Array[MemPeStat](4)
     var j = 0
