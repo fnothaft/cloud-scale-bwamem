@@ -19,26 +19,24 @@ package cs.ucla.edu.bwaspark.datatype
 
 import scala.Serializable
 
-import org.apache.avro.io._
-import org.apache.avro.specific.SpecificDatumReader
-import org.apache.avro.specific.SpecificDatumWriter
-
-import cs.ucla.edu.avro.fastq._
-
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.ObjectStreamException
+import org.apache.avro.io._
+import org.apache.avro.specific.SpecificDatumReader
+import org.apache.avro.specific.SpecificDatumWriter
+import org.bdgenomics.formats.avro.AlignmentRecord
 
 class PairEndReadType extends Serializable {
-  var seq0: FASTQRecord = _
+  var seq0: AlignmentRecord = _
   var regs0: Array[MemAlnRegType] = _
-  var seq1: FASTQRecord = _
+  var seq1: AlignmentRecord = _
   var regs1: Array[MemAlnRegType] = _
 
   private def writeObject(out: ObjectOutputStream) {
     out.writeObject(regs0)
     out.writeObject(regs1)
-    val writer = new SpecificDatumWriter[FASTQRecord](classOf[FASTQRecord])
+    val writer = new SpecificDatumWriter[AlignmentRecord](classOf[AlignmentRecord])
     val encoder = EncoderFactory.get.binaryEncoder(out, null)
     writer.write(seq0, encoder)
     writer.write(seq1, encoder)
@@ -48,10 +46,10 @@ class PairEndReadType extends Serializable {
   private def readObject(in: ObjectInputStream) {
     regs0 = in.readObject.asInstanceOf[Array[MemAlnRegType]]
     regs1 = in.readObject.asInstanceOf[Array[MemAlnRegType]]
-    val reader = new SpecificDatumReader[FASTQRecord](classOf[FASTQRecord]);
+    val reader = new SpecificDatumReader[AlignmentRecord](classOf[AlignmentRecord]);
     val decoder = DecoderFactory.get.binaryDecoder(in, null);
-    seq0 = reader.read(null, decoder).asInstanceOf[FASTQRecord]
-    seq1 = reader.read(null, decoder).asInstanceOf[FASTQRecord]
+    seq0 = reader.read(null, decoder).asInstanceOf[AlignmentRecord]
+    seq1 = reader.read(null, decoder).asInstanceOf[AlignmentRecord]
   }
 
   private def readObjectNoData() {

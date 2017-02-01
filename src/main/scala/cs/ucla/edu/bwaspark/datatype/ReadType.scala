@@ -22,20 +22,19 @@ import scala.Serializable
 import org.apache.avro.io._
 import org.apache.avro.specific.SpecificDatumReader
 import org.apache.avro.specific.SpecificDatumWriter
-
-import cs.ucla.edu.avro.fastq._
+import org.bdgenomics.formats.avro.AlignmentRecord
 
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.ObjectStreamException
 
 class ReadType extends Serializable {
-  var seq: FASTQRecord = _
+  var seq: AlignmentRecord = _
   var regs: Array[MemAlnRegType] = _
 
   private def writeObject(out: ObjectOutputStream) {
     out.writeObject(regs)
-    val writer = new SpecificDatumWriter[FASTQRecord](classOf[FASTQRecord])
+    val writer = new SpecificDatumWriter[AlignmentRecord](classOf[AlignmentRecord])
     val encoder = EncoderFactory.get.binaryEncoder(out, null)
     writer.write(seq, encoder)
     encoder.flush()
@@ -43,9 +42,9 @@ class ReadType extends Serializable {
 
   private def readObject(in: ObjectInputStream) {
     regs = in.readObject.asInstanceOf[Array[MemAlnRegType]]
-    val reader = new SpecificDatumReader[FASTQRecord](classOf[FASTQRecord]);
+    val reader = new SpecificDatumReader[AlignmentRecord](classOf[AlignmentRecord]);
     val decoder = DecoderFactory.get.binaryDecoder(in, null);
-    seq = reader.read(null, decoder).asInstanceOf[FASTQRecord]
+    seq = reader.read(null, decoder).asInstanceOf[AlignmentRecord]
   }
 
   private def readObjectNoData() {

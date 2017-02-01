@@ -26,10 +26,8 @@ import cs.ucla.edu.bwaspark.datatype._
 import cs.ucla.edu.bwaspark.sam.SAMHeader
 import cs.ucla.edu.bwaspark.util.BNTSeqUtil._
 import cs.ucla.edu.bwaspark.util.SWUtil._
-import cs.ucla.edu.avro.fastq._
 
 import org.bdgenomics.formats.avro.AlignmentRecord
-import org.bdgenomics.formats.avro.Contig
 import org.bdgenomics.adam.models.{ SequenceRecord, SequenceDictionary, RecordGroup }
 
 import htsjdk.samtools.SAMRecord
@@ -62,7 +60,7 @@ object MemRegToADAMSAM {
    *  @param samHeader the SAM header required to output SAM strings
    *  @return SAM format String
    */
-  def memRegToSAMSe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], seq: FASTQRecord, seqTrans: Array[Byte], regs: Array[MemAlnRegType], extraFlag: Int, alnMate: MemAlnType, samHeader: SAMHeader): String = {
+  def memRegToSAMSe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], seq: AlignmentRecord, seqTrans: Array[Byte], regs: Array[MemAlnRegType], extraFlag: Int, alnMate: MemAlnType, samHeader: SAMHeader): String = {
     var alns: MutableList[MemAlnType] = new MutableList[MemAlnType]
 
     if (regs != null) {
@@ -71,7 +69,7 @@ object MemRegToADAMSAM {
         if (regs(i).score >= opt.T) {
           if (regs(i).secondary < 0 || ((opt.flag & MEM_F_ALL) > 0)) {
             if (regs(i).secondary < 0 || regs(i).score >= regs(regs(i).secondary).score * 0.5) {
-              var aln = memRegToAln(opt, bns, pac, seq.seqLength, seqTrans, regs(i))
+              var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, regs(i))
               alns += aln
               aln.flag |= extraFlag // flag secondary
               if (regs(i).secondary >= 0) aln.sub = -1 // don't output sub-optimal score
@@ -93,7 +91,7 @@ object MemRegToADAMSAM {
     var samStr = new SAMString
 
     if (alns.length == 0) {
-      var aln = memRegToAln(opt, bns, pac, seq.seqLength, seqTrans, null)
+      var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, null)
       aln.flag |= extraFlag
       var alnList = new Array[MemAlnType](1)
       alnList(0) = aln
@@ -306,7 +304,7 @@ object MemRegToADAMSAM {
    *  Transform the alignment registers to alignment type
    *
    *  @param bns the input BNTSeqType object
-   *  @param seq the input read, store as in the FASTQRecord data structure
+   *  @param seq the input read, store as in the AlignmentRecord data structure
    *  @param seqTrans the input read after transformation to the byte array
    *  @param alnList the input alignment list
    *  @param which the id to be processed in the alnList
@@ -314,7 +312,7 @@ object MemRegToADAMSAM {
    *  @param samHeader the SAM header required to output SAM strings
    *  @param samStr the output SAM string
    */
-  def memAlnToSAM(bns: BNTSeqType, seq: FASTQRecord, seqTrans: Array[Byte], alnList: Array[MemAlnType], which: Int, alnMate: MemAlnType, samHeader: SAMHeader, samStr: SAMString) {
+  def memAlnToSAM(bns: BNTSeqType, seq: AlignmentRecord, seqTrans: Array[Byte], alnList: Array[MemAlnType], which: Int, alnMate: MemAlnType, samHeader: SAMHeader, samStr: SAMString) {
     var aln = alnList(which)
     var alnTmp = aln.copy
     var alnMateTmp: MemAlnType = null
@@ -343,7 +341,7 @@ object MemRegToADAMSAM {
     // seq.name is a Java ByteBuffer
     // When using decode(seq.name), it is a destructive operation
     // Therefore, we need to create a copy of ByteBuffer for seq.name
-    val bb = ByteBuffer.wrap(seq.name.array)
+    val bb = ByteBuffer.wrap(seq.getReadName.getBytes)
     val name = Charset.forName("ISO-8859-1").decode(bb).array;
     samStr.addCharArray(name) // QNAME
     samStr.addChar('\t')
@@ -403,7 +401,7 @@ object MemRegToADAMSAM {
       samStr.addCharArray("*\t*".toCharArray)
     } else if (alnTmp.isRev == 0) { // the forward strand
       var qb = 0
-      var qe = seq.seqLength
+      var qe = seq.getSequence.length
 
       if (alnTmp.nCigar > 0) {
         if (which > 0 && (alnTmp.cigar.cigarSegs(0).op == 4 || alnTmp.cigar.cigarSegs(0).op == 3)) qb += alnTmp.cigar.cigarSegs(0).len
@@ -420,7 +418,7 @@ object MemRegToADAMSAM {
       // seq.quality is a Java ByteBuffer
       // When using decode(seq.quality), it is a destructive operation
       // Therefore, we need to create a copy of ByteBuffer for seq.quality
-      val bb = ByteBuffer.wrap(seq.quality.array)
+      val bb = ByteBuffer.wrap(seq.getQual.getBytes)
       val qual = Charset.forName("ISO-8859-1").decode(bb).array;
       if (qual.size > 0) {
         var i = qb
@@ -431,7 +429,7 @@ object MemRegToADAMSAM {
       } else samStr.addChar('*')
     } else { // the reverse strand
       var qb = 0
-      var qe = seq.seqLength
+      var qe = seq.getSequence.length
 
       if (alnTmp.nCigar > 0) {
         if (which > 0 && (alnTmp.cigar.cigarSegs(0).op == 4 || alnTmp.cigar.cigarSegs(0).op == 3)) qe -= alnTmp.cigar.cigarSegs(0).len
@@ -448,7 +446,7 @@ object MemRegToADAMSAM {
       // seq.quality is a Java ByteBuffer
       // When using decode(seq.quality), it is a destructive operation
       // Therefore, we need to create a copy of ByteBuffer for seq.quality
-      val bb = ByteBuffer.wrap(seq.quality.array)
+      val bb = ByteBuffer.wrap(seq.getQual.getBytes)
       val qual = Charset.forName("ISO-8859-1").decode(bb).array;
       if (qual.size > 0) {
         var i = qe - 1
@@ -523,21 +521,7 @@ object MemRegToADAMSAM {
       }
     }
 
-    // seq.comment is a Java ByteBuffer
-    // When using decode(seq.comment), it is a destructive operation
-    // Therefore, we need to create a copy of ByteBuffer for seq.comment
-    // DO NOT include comments in the SAM output
-    // It seems that Samtools does not take this
-
-    //val bbComment = ByteBuffer.wrap(seq.comment.array)
-    //val comment = Charset.forName("ISO-8859-1").decode(bbComment).array;
-    //if(comment.size > 0) {
-    //  samStr.addChar('\t')
-    //  samStr.addCharArray(comment)
-    //}
-
     samStr.addChar('\n')
-
   }
 
   /**
@@ -900,7 +884,7 @@ object MemRegToADAMSAM {
    *  @param readGroup the read group: used for ADAM format output
    *  @return an array of ADAM format object
    */
-  def memRegToADAMSe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], seq: FASTQRecord, seqTrans: Array[Byte], regs: Array[MemAlnRegType], extraFlag: Int,
+  def memRegToADAMSe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], seq: AlignmentRecord, seqTrans: Array[Byte], regs: Array[MemAlnRegType], extraFlag: Int,
                      alnMate: MemAlnType, samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Vector[AlignmentRecord] = {
     var alns: MutableList[MemAlnType] = new MutableList[MemAlnType]
     var adamVec: Vector[AlignmentRecord] = scala.collection.immutable.Vector.empty
@@ -911,7 +895,7 @@ object MemRegToADAMSAM {
         if (regs(i).score >= opt.T) {
           if (regs(i).secondary < 0 || ((opt.flag & MEM_F_ALL) > 0)) {
             if (regs(i).secondary < 0 || regs(i).score >= regs(regs(i).secondary).score * 0.5) {
-              var aln = memRegToAln(opt, bns, pac, seq.seqLength, seqTrans, regs(i))
+              var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, regs(i))
               alns += aln
               aln.flag |= extraFlag // flag secondary
               if (regs(i).secondary >= 0) aln.sub = -1 // don't output sub-optimal score
@@ -930,7 +914,7 @@ object MemRegToADAMSAM {
 
     // no alignments good enough; then write an unaligned record
     if (alns.length == 0) {
-      var aln = memRegToAln(opt, bns, pac, seq.seqLength, seqTrans, null)
+      var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, null)
       aln.flag |= extraFlag
       var alnList = new Array[MemAlnType](1)
       alnList(0) = aln
@@ -952,7 +936,7 @@ object MemRegToADAMSAM {
    *  Transform the alignment registers to alignment type (ADAM format)
    *
    *  @param bns the input BNTSeqType object
-   *  @param seq the input read, store as in the FASTQRecord data structure
+   *  @param seq the input read, store as in the AlignmentRecord data structure
    *  @param seqTrans the input read after transformation to the byte array
    *  @param alnList the input alignment list
    *  @param which the id to be processed in the alnList
@@ -962,7 +946,7 @@ object MemRegToADAMSAM {
    *  @param readGroup the read group: used for ADAM format output
    *  @return the output ADAM object
    */
-  def memAlnToADAM(bns: BNTSeqType, seq: FASTQRecord, seqTrans: Array[Byte], alnList: Array[MemAlnType], which: Int, alnMate: MemAlnType,
+  def memAlnToADAM(bns: BNTSeqType, seq: AlignmentRecord, seqTrans: Array[Byte], alnList: Array[MemAlnType], which: Int, alnMate: MemAlnType,
                    samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): AlignmentRecord = {
     val builder: AlignmentRecord.Builder = AlignmentRecord.newBuilder
     var aln = alnList(which)
@@ -993,7 +977,7 @@ object MemRegToADAMSAM {
     // seq.name is a Java ByteBuffer
     // When using decode(seq.name), it is a destructive operation
     // Therefore, we need to create a copy of ByteBuffer for seq.name
-    val bb = ByteBuffer.wrap(seq.name.array)
+    val bb = ByteBuffer.wrap(seq.getReadName.getBytes)
     val name = Charset.forName("ISO-8859-1").decode(bb).toString
     builder.setReadName(name) // QNAME
     if ((alnTmp.flag & 0x10000) > 0) alnTmp.flag = (alnTmp.flag & 0xffff) | 0x100 // FLAG
@@ -1126,7 +1110,7 @@ object MemRegToADAMSAM {
     //else if(alnTmp.isRev == 0) {   // the forward strand
     if (alnTmp.isRev == 0) { // the forward strand
       var qb = 0
-      var qe = seq.seqLength
+      var qe = seq.getSequence.length
 
       if (alnTmp.nCigar > 0) {
         if (which > 0 && (alnTmp.cigar.cigarSegs(0).op == 4 || alnTmp.cigar.cigarSegs(0).op == 3)) qb += alnTmp.cigar.cigarSegs(0).len
@@ -1143,7 +1127,7 @@ object MemRegToADAMSAM {
       // seq.quality is a Java ByteBuffer
       // When using decode(seq.quality), it is a destructive operation
       // Therefore, we need to create a copy of ByteBuffer for seq.quality
-      val bb = ByteBuffer.wrap(seq.quality.array)
+      val bb = ByteBuffer.wrap(seq.getQual.getBytes)
       val qual = Charset.forName("ISO-8859-1").decode(bb).array;
       var qualStr = new SAMString
 
@@ -1158,7 +1142,7 @@ object MemRegToADAMSAM {
       builder.setQual(qualStr.toString) // QUAL
     } else { // the reverse strand
       var qb = 0
-      var qe = seq.seqLength
+      var qe = seq.getSequence.length
 
       if (alnTmp.nCigar > 0) {
         if (which > 0 && (alnTmp.cigar.cigarSegs(0).op == 4 || alnTmp.cigar.cigarSegs(0).op == 3)) qe -= alnTmp.cigar.cigarSegs(0).len
@@ -1175,7 +1159,7 @@ object MemRegToADAMSAM {
       // seq.quality is a Java ByteBuffer
       // When using decode(seq.quality), it is a destructive operation
       // Therefore, we need to create a copy of ByteBuffer for seq.quality
-      val bb = ByteBuffer.wrap(seq.quality.array)
+      val bb = ByteBuffer.wrap(seq.getQual.getBytes)
       val qual = Charset.forName("ISO-8859-1").decode(bb).array;
       var qualStr = new SAMString
 
@@ -1260,7 +1244,7 @@ object MemRegToADAMSAM {
     // seq.comment is a Java ByteBuffer
     // When using decode(seq.comment), it is a destructive operation
     // Therefore, we need to create a copy of ByteBuffer for seq.comment
-    val bbComment = ByteBuffer.wrap(seq.comment.array)
+    val bbComment = ByteBuffer.wrap(seq.getAttributes.getBytes)
     val comment = Charset.forName("ISO-8859-1").decode(bbComment).array;
     if (comment.size > 0) {
       attrStr.addChar('\t')

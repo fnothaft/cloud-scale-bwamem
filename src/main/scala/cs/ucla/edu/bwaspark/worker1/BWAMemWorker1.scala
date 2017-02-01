@@ -26,7 +26,7 @@ import cs.ucla.edu.bwaspark.worker1.MemChainFilter._
 import cs.ucla.edu.bwaspark.worker1.MemChainToAlign._
 import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup._
 import cs.ucla.edu.bwaspark.util.LocusEncode._
-import cs.ucla.edu.avro.fastq._
+import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 
 //this standalone object defines the main job of BWA MEM:
 //1)for each read, generate all the possible seed chains
@@ -50,14 +50,15 @@ object BWAMemWorker1 {
                     bns: BNTSeqType, //.ann, .amb files
                     pac: Array[Byte], //.pac file uint8_t
                     pes: Array[MemPeStat], //pes array
-                    seq: FASTQRecord //a read
+                    seq: AlignmentRecord //a read
                     ): ReadType = { //all possible alignment  
 
-    val seqStr = new String(seq.getSeq.array)
+    val seqStr = seq.getSequence
     val read: Array[Byte] = seqStr.toCharArray.map(ele => locusEncode(ele))
 
     //first step: generate all possible MEM chains for this read
-    val chains = generateChains(opt, bwt, bns.l_pac, seq.getSeqLength, read)
+    val sequenceLength = seq.getSequence.length
+    val chains = generateChains(opt, bwt, bns.l_pac, sequenceLength, read)
 
     //second step: filter chains
     val chainsFiltered = memChainFilter(opt, chains)
@@ -80,7 +81,7 @@ object BWAMemWorker1 {
       regArray.regs = new Array[MemAlnRegType](totalSeedNum)
 
       for (i <- 0 until chainsFiltered.length) {
-        memChainToAln(opt, bns.l_pac, pac, seq.getSeqLength, read, chainsFiltered(i), regArray)
+        memChainToAln(opt, bns.l_pac, pac, sequenceLength, read, chainsFiltered(i), regArray)
       }
 
       regArray.regs = regArray.regs.filter(r => (r != null))
@@ -112,11 +113,13 @@ object BWAMemWorker1 {
                            bns: BNTSeqType, //.ann, .amb files
                            pac: Array[Byte], //.pac file uint8_t
                            pes: Array[MemPeStat], //pes array
-                           pairSeqs: PairEndFASTQRecord //a read
+                           pairSeqs: Fragment //a read
                            ): PairEndReadType = { //all possible alignment  
 
-    val read0 = bwaMemWorker1(opt, bwt, bns, pac, pes, pairSeqs.seq0)
-    val read1 = bwaMemWorker1(opt, bwt, bns, pac, pes, pairSeqs.seq1)
+    require(pairSeqs.getAlignments.size == 2,
+      "Fragment did not have exactly two reads: %s.".format(pairSeqs))
+    val read0 = bwaMemWorker1(opt, bwt, bns, pac, pes, pairSeqs.getAlignments.get(0))
+    val read1 = bwaMemWorker1(opt, bwt, bns, pac, pes, pairSeqs.getAlignments.get(1))
     var pairEndRead = new PairEndReadType
     pairEndRead.seq0 = read0.seq
     pairEndRead.regs0 = read0.regs

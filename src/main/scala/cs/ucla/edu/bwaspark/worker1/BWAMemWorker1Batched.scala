@@ -26,8 +26,8 @@ import cs.ucla.edu.bwaspark.worker1.MemChainFilter._
 import cs.ucla.edu.bwaspark.worker1.MemChainToAlignBatched._
 import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup._
 import cs.ucla.edu.bwaspark.util.LocusEncode._
-import cs.ucla.edu.avro.fastq._
 import cs.ucla.edu.bwaspark.debug.DebugFlag._
+import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 
 //this standalone object defines the main job of BWA MEM:
 //1)for each read, generate all the possible seed chains
@@ -53,7 +53,7 @@ object BWAMemWorker1Batched {
                            bns: BNTSeqType, //.ann, .amb files
                            pac: Array[Byte], //.pac file uint8_t
                            pes: Array[MemPeStat], //pes array
-                           seqArray: Array[FASTQRecord], //the batched reads
+                           seqArray: Array[AlignmentRecord], //the batched reads
                            numOfReads: Int, //the number of the batched reads
                            runOnFPGA: Boolean, //if run on FPGA
                            threshold: Int //the batch threshold to run on FPGA
@@ -63,8 +63,10 @@ object BWAMemWorker1Batched {
     val lenArray = new Array[Int](numOfReads)
     var i = 0
     while (i < numOfReads) {
-      readArray(i) = (new String(seqArray(i).getSeq.array)).toCharArray.map(locus => locusEncode(locus))
-      lenArray(i) = seqArray(i).getSeqLength.toInt
+      readArray(i) = seqArray(i).getSequence
+        .toCharArray
+        .map(locus => locusEncode(locus))
+      lenArray(i) = seqArray(i).getSequence.length
       i = i + 1
     }
 
@@ -144,8 +146,8 @@ object BWAMemWorker1Batched {
                                   bns: BNTSeqType, //.ann, .amb files
                                   pac: Array[Byte], //.pac file uint8_t
                                   pes: Array[MemPeStat], //pes array
-                                  seqArray0: Array[FASTQRecord], //the first batch
-                                  seqArray1: Array[FASTQRecord], //the second batch
+                                  seqArray0: Array[AlignmentRecord], //the first batch
+                                  seqArray1: Array[AlignmentRecord], //the second batch
                                   numOfReads: Int, //the number of reads in each batch
                                   runOnFPGA: Boolean, //if run on FPGA
                                   threshold: Int, //the batch threshold to run on FPGA

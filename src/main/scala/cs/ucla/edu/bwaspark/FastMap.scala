@@ -32,13 +32,11 @@ import cs.ucla.edu.bwaspark.sam.SAMHeader
 import cs.ucla.edu.bwaspark.sam.SAMWriter
 import cs.ucla.edu.bwaspark.sam.SAMHDFSWriter
 import cs.ucla.edu.bwaspark.debug.DebugFlag._
-import cs.ucla.edu.bwaspark.fastq._
 import cs.ucla.edu.bwaspark.util.SWUtil._
-import cs.ucla.edu.avro.fastq._
 import cs.ucla.edu.bwaspark.commandline._
 import cs.ucla.edu.bwaspark.broadcast.ReferenceBroadcast
 
-import org.bdgenomics.formats.avro.AlignmentRecord
+import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.read.AlignedReadRDD
 import org.bdgenomics.adam.models.{ SequenceDictionary, RecordGroup, RecordGroupDictionary }
@@ -54,6 +52,8 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.util.{ Success, Failure }
 import scala.concurrent.duration._
+import scala.collection.JavaConversions._
+import scala.collection.mutable.Buffer
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -65,10 +65,6 @@ object FastMap {
   private val MEM_F_ALL = 0x8
   private val MEM_F_NO_MULTI = 0x10
   private val packageVersion = "cloud-scale-bwamem-0.2.2"
-  private val NO_OUT_FILE = 0
-  private val SAM_OUT_LOCAL = 1
-  private val ADAM_OUT = 2
-  private val SAM_OUT_DFS = 3
 
   /**
    *  memMain: the main function to perform read mapping
@@ -126,28 +122,28 @@ object FastMap {
 
     // write SAM header
     println("Output choice: " + outputChoice)
-    if (outputChoice == ADAM_OUT) {
-      samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion, readGroupString, samFileHeader)
-      seqDict = SequenceDictionary(samFileHeader)
-      readGroupDict = RecordGroupDictionary.fromSAMHeader(samFileHeader)
-      readGroup = readGroupDict(readGroupName)
-    }
+
+    samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion, readGroupString, samFileHeader)
+    seqDict = SequenceDictionary(samFileHeader)
+    readGroupDict = RecordGroupDictionary.fromSAMHeader(samFileHeader)
+    readGroup = readGroupDict(readGroupName)
 
     // pair-end read mapping
     if (isPairEnd) {
       bwaMemOpt.flag |= MEM_F_PE
-      if (outputChoice == SAM_OUT_LOCAL || outputChoice == SAM_OUT_DFS)
-        memPairEndMapping(sc, bwamemArgs, bwaMemOpt, bwaIdx, samHeader)
-      else if (outputChoice == ADAM_OUT)
-        memPairEndMapping(sc, bwamemArgs, bwaMemOpt, bwaIdx, samHeader, seqDict, readGroup)
-    } // single-end read mapping
-    else {
-      if (outputChoice == SAM_OUT_LOCAL || outputChoice == SAM_OUT_DFS)
-        memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, fastqInputFolderNum, batchFolderNum, bwaMemOpt, bwaIdx, outputChoice, outputPath, samHeader)
-      else if (outputChoice == ADAM_OUT)
-        memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, fastqInputFolderNum, batchFolderNum, bwaMemOpt, bwaIdx, outputChoice, outputPath, samHeader, seqDict, readGroup)
+      memPairEndMapping(sc, bwamemArgs, bwaMemOpt, bwaIdx, samHeader, seqDict, readGroup)
+    } else {
+      // single-end read mapping
+      memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, fastqInputFolderNum, batchFolderNum, bwaMemOpt, bwaIdx, outputChoice, outputPath, samHeader, seqDict, readGroup)
     }
 
+  }
+
+  private def arrayToFragments(reads: Array[AlignmentRecord]): Fragment = {
+    val readBuffer = reads.toBuffer
+    Fragment.newBuilder
+      .setAlignments(readBuffer)
+      .build
   }
 
   /**
@@ -183,14 +179,6 @@ object FastMap {
     // Initialize output writer
     val samWriter = new SAMWriter
     val samHDFSWriter = new SAMHDFSWriter(outputPath)
-    if (outputChoice == SAM_OUT_LOCAL) {
-      samWriter.init(outputPath)
-      samWriter.writeString(samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion))
-    } else if (outputChoice == SAM_OUT_DFS) {
-      samHDFSWriter.init
-      samHDFSWriter.writeString(samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion))
-    }
-
     // broadcast shared variables
     // If each node has its own copy of human reference genome, we can bypass the broadcast from the driver node.
     // Otherwise, we need to use Spark broadcast
@@ -203,10 +191,7 @@ object FastMap {
 
     // Used to avoid time consuming adamRDD.count (numProcessed += adamRDD.count)
     // Assume the number of read in one batch is the same (This is determined when uploading FASTQ to HDFS)
-    val fastqRDDLoaderTmp = new FASTQRDDLoader(sc, fastqHDFSInputPath, fastqInputFolderNum)
-    val rddTmp = fastqRDDLoaderTmp.PairEndRDDLoadOneBatch(0, batchFolderNum)
-    val batchedReadNum = rddTmp.count
-    rddTmp.unpersist(true)
+    val fragmentRdd = sc.loadFragments(fastqHDFSInputPath)
 
     // *****   PROFILING    *******
     var worker1Time: Long = 0
@@ -215,57 +200,39 @@ object FastMap {
     var ioWaitingTime: Long = 0
 
     var numProcessed: Long = 0
-    // Process the reads in a batched fashion
-    var i: Int = 0
-    var folderID: Int = 0
     var isSAMWriteDone: Boolean = true // a done signal for writing SAM file
-    //var isFinalIteration: Boolean = false
-    while (i < fastqInputFolderNum) {
 
-      var pes: Array[MemPeStat] = new Array[MemPeStat](4)
-      var j = 0
-      while (j < 4) {
-        pes(j) = new MemPeStat
-        j += 1
-      }
+    var pes: Array[MemPeStat] = new Array[MemPeStat](4)
+    var j = 0
+    while (j < 4) {
+      pes(j) = new MemPeStat
+      j += 1
+    }
 
-      // loading reads
-      println("Load FASTQ files")
-      val pairEndFASTQRDDLoader = new FASTQRDDLoader(sc, fastqHDFSInputPath, fastqInputFolderNum)
-      val restFolderNum = fastqInputFolderNum - i
-      var pairEndFASTQRDD: RDD[PairEndFASTQRecord] = null
-      if (restFolderNum >= batchFolderNum) {
-        pairEndFASTQRDD = pairEndFASTQRDDLoader.PairEndRDDLoadOneBatch(i, batchFolderNum)
-        i += batchFolderNum
-      } else {
-        pairEndFASTQRDD = pairEndFASTQRDDLoader.PairEndRDDLoadOneBatch(i, restFolderNum)
-        i += restFolderNum
-        //isFinalIteration = true
-      }
+    val recordGroupDictionary = if (fragmentRdd.recordGroups.recordGroups.isEmpty) {
+      RecordGroupDictionary(Seq(readGroup))
+    } else {
+      fragmentRdd.recordGroups
+    }
 
-      // Worker1 (Map step)
-      // *****   PROFILING    *******
-      val startTime = System.currentTimeMillis
-
-      println("@Worker1")
-      var reads: RDD[PairEndReadType] = null
+    fragmentRdd.transform(rdd => {
 
       // SWExtend() is not processed in a batched way (by default)
-      if (!isSWExtBatched) {
-        reads = pairEndFASTQRDD.map(pairSeq => pairEndBwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bwt, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, null, pairSeq))
-      } // SWExtend() is processed in a batched way. FPGA accelerating may be applied
-      else {
-        def it2ArrayIt_W1(iter: Iterator[PairEndFASTQRecord]): Iterator[Array[PairEndReadType]] = {
+      val stageOneReads = if (!isSWExtBatched) {
+        rdd.map(pairSeq => pairEndBwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bwt, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, null, pairSeq))
+      } else {
+        // SWExtend() is processed in a batched way. FPGA accelerating may be applied
+        def it2ArrayIt_W1(iter: Iterator[Fragment]): Iterator[Array[PairEndReadType]] = {
           val batchedDegree = swExtBatchSize
           var counter = 0
           var ret: Vector[Array[PairEndReadType]] = scala.collection.immutable.Vector.empty
-          var end1 = new Array[FASTQRecord](batchedDegree)
-          var end2 = new Array[FASTQRecord](batchedDegree)
+          var end1 = new Array[AlignmentRecord](batchedDegree)
+          var end2 = new Array[AlignmentRecord](batchedDegree)
 
           while (iter.hasNext) {
             val pairEnd = iter.next
-            end1(counter) = pairEnd.seq0
-            end2(counter) = pairEnd.seq1
+            end1(counter) = pairEnd.getAlignments.get(0)
+            end2(counter) = pairEnd.getAlignments.get(1)
             counter += 1
             if (counter == batchedDegree) {
               ret = ret :+ pairEndBwaMemWorker1Batched(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bwt, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac,
@@ -282,258 +249,41 @@ object FastMap {
           ret.toArray.iterator
         }
 
-        reads = pairEndFASTQRDD.mapPartitions(it2ArrayIt_W1).flatMap(s => s)
+        rdd.mapPartitions(it2ArrayIt_W1).flatMap(s => s)
       }
-
-      pairEndFASTQRDD.unpersist(true)
-      reads.cache
+      stageOneReads.cache
 
       // MemPeStat (Reduce step)
-      val peStatPrepRDD = reads.map(pairSeq => memPeStatPrep(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns.l_pac, pairSeq))
+      val peStatPrepRDD = stageOneReads.map(pairSeq => memPeStatPrep(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns.l_pac, pairSeq))
       val peStatPrepArray = peStatPrepRDD.collect
-
-      // *****   PROFILING    *******
-      val worker1EndTime = System.currentTimeMillis
-      worker1Time += (worker1EndTime - startTime)
 
       memPeStatCompute(bwaMemOptGlobal.value, peStatPrepArray, pes)
 
-      // *****   PROFILING    *******
-      val calMetricsEndTime = System.currentTimeMillis
-      calMetricsTime += (calMetricsEndTime - worker1EndTime)
-
-      println("@MemPeStat")
-      j = 0
-      while (j < 4) {
-        println("pes(" + j + "): " + pes(j).low + " " + pes(j).high + " " + pes(j).failed + " " + pes(j).avg + " " + pes(j).std)
-        j += 1
-      }
-
-      // Check if the I/O thread has completed writing the output SAM file
-      // If not, wait here!!!
-      // This implementation use only worker1 stage to hide the I/O latency
-      // It is slower but consume less memory footprint
-      /*if(outputChoice == SAM_OUT_LOCAL) {
-        println("[DEBUG] Main thread, Before while loop: isSAMWriteDone = " + isSAMWriteDone)
-
-        while(!isSAMWriteDone) {
-          try {
-            println("Waiting for I/O")
-            ioWaitingTime += 1
-            Thread.sleep(1000)                 //1000 milliseconds is one second.
-          } catch {
-            case e: InterruptedException => Thread.currentThread().interrupt()
-          }
-        }
-
-        println("[DEBUG] Main thread, After while loop: isSAMWriteDone = " + isSAMWriteDone)
-        this.synchronized {
-          isSAMWriteDone = false
-        }
-        println("[DEBUG] Main thread, Final value: isSAMWriteDone = " + isSAMWriteDone)
-
-      }*/
-
       // Worker2 (Map step)
-      println("@Worker2: Started")
-      // NOTE: we may need to find how to utilize the numProcessed variable!!!
-      // Batched Processing for P-SW kernel
-      if (isPSWBatched) {
-        // Not output SAM format file
-        if (outputChoice == NO_OUT_FILE) {
-          def it2ArrayIt(iter: Iterator[PairEndReadType]): Iterator[Unit] = {
-            var counter = 0
-            var ret: Vector[Unit] = scala.collection.immutable.Vector.empty
-            var subBatch = new Array[PairEndReadType](subBatchSize)
-            while (iter.hasNext) {
-              subBatch(counter) = iter.next
-              counter = counter + 1
-              if (counter == subBatchSize) {
-                ret = ret :+ pairEndBwaMemWorker2PSWBatched(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, subBatchSize, isPSWJNI, jniLibPath, samHeader)
-                counter = 0
-              }
-            }
-            if (counter != 0)
-              ret = ret :+ pairEndBwaMemWorker2PSWBatched(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, counter, isPSWJNI, jniLibPath, samHeader)
-            ret.toArray.iterator
+      def it2ArrayIt(iter: Iterator[PairEndReadType]): Iterator[Fragment] = {
+        var counter = 0
+        var ret: Vector[Array[AlignmentRecord]] = scala.collection.immutable.Vector.empty
+        var subBatch = new Array[PairEndReadType](subBatchSize)
+        while (iter.hasNext) {
+          subBatch(counter) = iter.next
+          counter = counter + 1
+          if (counter == subBatchSize) {
+            ret = ret :+ pairEndBwaMemWorker2PSWBatchedADAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, subBatchSize, isPSWJNI, jniLibPath, samHeader, seqDict, readGroup)
+            counter = 0
           }
-
-          val count = reads.mapPartitions(it2ArrayIt).count
-          println("Count: " + count)
-
-          reads.unpersist(true) // free RDD; seems to be needed (free storage information is wrong)
-        } // Output SAM format file
-        else if (outputChoice == SAM_OUT_LOCAL || outputChoice == SAM_OUT_DFS) {
-          def it2ArrayIt(iter: Iterator[PairEndReadType]): Iterator[Array[Array[String]]] = {
-            var counter = 0
-            var ret: Vector[Array[Array[String]]] = scala.collection.immutable.Vector.empty
-            var subBatch = new Array[PairEndReadType](subBatchSize)
-            while (iter.hasNext) {
-              subBatch(counter) = iter.next
-              counter = counter + 1
-              if (counter == subBatchSize) {
-                ret = ret :+ pairEndBwaMemWorker2PSWBatchedSAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, subBatchSize, isPSWJNI, jniLibPath, samHeader)
-                counter = 0
-              }
-            }
-            if (counter != 0)
-              ret = ret :+ pairEndBwaMemWorker2PSWBatchedSAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, counter, isPSWJNI, jniLibPath, samHeader)
-            ret.toArray.iterator
-          }
-
-          if (outputChoice == SAM_OUT_LOCAL) {
-            println("@worker2")
-            val samStrings = reads.mapPartitions(it2ArrayIt).collect
-            println("worker2 done!")
-
-            // This implementation can hide the I/O latency with both worker1 and worker2 stages
-            // However, it requires 2X memory footprint on the driver node 
-            // The program will crash if the memory (Java heap) on the driver node is not large enough
-            // test
-            println("[DEBUG] Main thread, Before while loop: isSAMWriteDone = " + isSAMWriteDone)
-
-            while (!isSAMWriteDone) {
-              try {
-                println("Waiting for I/O")
-                ioWaitingTime += 1
-                Thread.sleep(1000) //1000 milliseconds is one second.
-              } catch {
-                case e: InterruptedException => Thread.currentThread().interrupt()
-              }
-            }
-
-            println("[DEBUG] Main thread, After while loop: isSAMWriteDone = " + isSAMWriteDone)
-            this.synchronized {
-              isSAMWriteDone = false
-            }
-            println("[DEBUG] Main thread, Final value: isSAMWriteDone = " + isSAMWriteDone)
-            // end of test
-
-            println("Count: " + samStrings.size)
-            reads.unpersist(true) // free RDD; seems to be needed (free storage information is wrong)
-
-            val f: Future[Int] = Future {
-              samStrings.foreach(s => {
-                s.foreach(pairSeq => {
-                  samWriter.writeString(pairSeq(0))
-                  samWriter.writeString(pairSeq(1))
-                })
-              })
-              //samWriter.flush
-              1
-            }
-
-            f onComplete {
-              case Success(s) => {
-                println("[DEBUG] Forked thread, Before: isSAMWriteDone = " + isSAMWriteDone)
-                println("Successfully write the SAM strings to a local file: " + s)
-                this.synchronized {
-                  isSAMWriteDone = true
-                }
-                println("[DEBUG] Forked thread, After: isSAMWriteDone = " + isSAMWriteDone)
-
-                /*if(isFinalIteration) {
-                  println("[DEBUG] Final iteration, Close samWriter")
-                  samWriter.close
-                  val today = Calendar.getInstance().getTime()
-                  // create the date/time formatters
-                  val minuteFormat = new SimpleDateFormat("mm")
-                  val hourFormat = new SimpleDateFormat("hh")
-                  val secondFormat = new SimpleDateFormat("ss")
-                  val currentHour = hourFormat.format(today)      // 12
-                  val currentMinute = minuteFormat.format(today)  // 29
-                  val currentSecond = secondFormat.format(today)  // 50
-                  println("samWriter is closed: " + currentHour + ":" + currentMinute + ":" + currentSecond)
-                }*/
-              }
-              case Failure(f) => println("An error has occured: " + f.getMessage)
-            }
-
-            /*if(isFinalIteration) {
-              println("Main thread: waiting for closing samWriter (wait for at most 1000 seconds)")
-              Await.result(f, 1000.second)
-              println("Main thread: samWriter closed!")
-            }*/
-          } else if (outputChoice == SAM_OUT_DFS) {
-            val samStrings = reads.mapPartitions(it2ArrayIt).flatMap(s => s).map(pairSeq => pairSeq(0) + pairSeq(1))
-            reads.unpersist(true)
-            samStrings.saveAsTextFile(outputPath + "/body")
-          }
-        } // Output ADAM format file
-        else if (outputChoice == ADAM_OUT) {
-          def it2ArrayIt(iter: Iterator[PairEndReadType]): Iterator[Array[AlignmentRecord]] = {
-            var counter = 0
-            var ret: Vector[Array[AlignmentRecord]] = scala.collection.immutable.Vector.empty
-            var subBatch = new Array[PairEndReadType](subBatchSize)
-            while (iter.hasNext) {
-              subBatch(counter) = iter.next
-              counter = counter + 1
-              if (counter == subBatchSize) {
-                ret = ret :+ pairEndBwaMemWorker2PSWBatchedADAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, subBatchSize, isPSWJNI, jniLibPath, samHeader, seqDict, readGroup)
-                counter = 0
-              }
-            }
-            if (counter != 0)
-              ret = ret :+ pairEndBwaMemWorker2PSWBatchedADAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, counter, isPSWJNI, jniLibPath, samHeader, seqDict, readGroup)
-            ret.toArray.iterator
-          }
-
-          //val adamObjRDD = sc.union(reads.mapPartitions(it2ArrayIt))
-          val adamObjRDD = reads.mapPartitions(it2ArrayIt).flatMap(r => r)
-          AlignedReadRDD(adamObjRDD,
-            seqDict,
-            RecordGroupDictionary(Seq(readGroup))).saveAsParquet(outputPath + "/" + folderID.toString())
-          println("@Worker2: Completed")
-          numProcessed += batchedReadNum
-          folderID += 1
-          reads.unpersist(true)
-          adamObjRDD.unpersist(true) // free RDD; seems to be needed (free storage information is wrong)         
         }
-      } // NOTE: need to be modified!!!
-      // Normal read-based processing
-      else {
-        val count = reads.map(pairSeq => pairEndBwaMemWorker2(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, pairSeq, samHeader)).count
-        numProcessed += count.toLong
+        if (counter != 0)
+          ret = ret :+ pairEndBwaMemWorker2PSWBatchedADAMRet(bwaMemOptGlobal.value, bwaIdxGlobal.value.value.bns, bwaIdxGlobal.value.value.pac, 0, pes, subBatch, counter, isPSWJNI, jniLibPath, samHeader, seqDict, readGroup)
+        ret.toArray.iterator.map(arrayToFragments)
       }
 
-      // *****   PROFILING    *******
-      val worker2EndTime = System.currentTimeMillis
-      worker2Time += (worker2EndTime - calMetricsEndTime)
-    }
+      val adamObjRdd = stageOneReads.mapPartitions(it2ArrayIt)
+      stageOneReads.unpersist()
+      adamObjRdd
+    }).copy(sequences = seqDict,
+      recordGroups = recordGroupDictionary)
+      .saveAsParquet(outputPath)
 
-    if (outputChoice == SAM_OUT_LOCAL) {
-      println("[DEBUG] Main thread, Final iteration, Before: isSAMWriteDone = " + isSAMWriteDone)
-      while (!isSAMWriteDone) {
-        try {
-          println("Waiting for I/O, at final iteration")
-          ioWaitingTime += 1
-          Thread.sleep(1000) //1000 milliseconds is one second.
-        } catch {
-          case e: InterruptedException => Thread.currentThread().interrupt()
-        }
-      }
-      println("[DEBUG] Main thread, Final iteration, After: isSAMWriteDone = " + isSAMWriteDone)
-      //samWriter.flush
-      samWriter.close
-
-      val today = Calendar.getInstance().getTime()
-      // create the date/time formatters
-      val minuteFormat = new SimpleDateFormat("mm")
-      val hourFormat = new SimpleDateFormat("hh")
-      val secondFormat = new SimpleDateFormat("ss")
-      val currentHour = hourFormat.format(today) // 12
-      val currentMinute = minuteFormat.format(today) // 29
-      val currentSecond = secondFormat.format(today) // 50
-      println("SAMWriter close: " + currentHour + ":" + currentMinute + ":" + currentSecond)
-    } else if (outputChoice == SAM_OUT_DFS)
-      samHDFSWriter.close
-
-    println("Summary:")
-    println("Worker1 Time: " + worker1Time)
-    println("Calculate Metrics Time: " + calMetricsTime)
-    println("Worker2 Time: " + worker2Time)
-    println("I/O waiting time for writing data to the disk (for local SAM format only): " + ioWaitingTime)
-    sc.stop
   }
 
   /**
@@ -555,120 +305,53 @@ object FastMap {
   private def memSingleEndMapping(sc: SparkContext, fastaLocalInputPath: String, fastqHDFSInputPath: String, fastqInputFolderNum: Int, batchFolderNum: Int,
                                   bwaMemOpt: MemOptType, bwaIdx: BWAIdxType, outputChoice: Int, outputPath: String, samHeader: SAMHeader,
                                   seqDict: SequenceDictionary = null, readGroup: RecordGroup = null) {
-    // Initialize output writer
-    val samWriter = new SAMWriter
-    val samHDFSWriter = new SAMHDFSWriter(outputPath)
-    if (outputChoice == SAM_OUT_LOCAL) {
-      samWriter.init(outputPath)
-      samWriter.writeString(samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion))
-    } else if (outputChoice == SAM_OUT_DFS) {
-      samHDFSWriter.init
-      samHDFSWriter.writeString(samHeader.bwaGenSAMHeader(bwaIdx.bns, packageVersion))
-    }
-
     // broadcast shared variables
     //val bwaIdxGlobal = sc.broadcast(bwaIdx, fastaLocalInputPath)  // read from local disks!!!
     val bwaIdxGlobal = sc.broadcast(bwaIdx) // broadcast
     val bwaMemOptGlobal = sc.broadcast(bwaMemOpt)
-    val fastqRDDLoader = new FASTQRDDLoader(sc, fastqHDFSInputPath, fastqInputFolderNum)
 
-    // Not output SAM file
-    // For runtime estimation
-    if (outputChoice == NO_OUT_FILE) {
-      // loading reads
-      println("Load FASTQ files")
-      val fastqRDD = fastqRDDLoader.RDDLoadAll
+    var numProcessed: Long = 0
 
-      println("@Worker1")
-      val reads = fastqRDD.map(seq => bwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.bwt, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, null, seq))
-      println("@Worker2")
-      val c = reads.map(r => singleEndBwaMemWorker2(bwaMemOptGlobal.value, r.regs, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, r.seq, 0, samHeader)).count
-      println("Count: " + c)
-    } // output SAM file
-    else if (outputChoice == SAM_OUT_LOCAL || outputChoice == SAM_OUT_DFS) {
-      var numProcessed: Long = 0
+    // Used to avoid time consuming adamRDD.count (numProcessed += adamRDD.count)
+    // Assume the number of read in one batch is the same (This is determined when uploading FASTQ to HDFS)
+    val fragmentRdd = sc.loadFragments(fastqHDFSInputPath)
 
-      // Process the reads in a batched fashion
-      var i: Int = 0
-      while (i < fastqInputFolderNum) {
-        val restFolderNum = fastqInputFolderNum - i
-        var singleEndFASTQRDD: RDD[FASTQRecord] = null
-        if (restFolderNum >= batchFolderNum) {
-          singleEndFASTQRDD = fastqRDDLoader.SingleEndRDDLoadOneBatch(i, batchFolderNum)
-          i += batchFolderNum
-        } else {
-          singleEndFASTQRDD = fastqRDDLoader.SingleEndRDDLoadOneBatch(i, restFolderNum)
-          i += restFolderNum
-        }
-
-        // Write to an output file in the local file system in a sequencial way 
-        if (outputChoice == SAM_OUT_LOCAL) {
-          // worker1, worker2, and return SAM format strings
-          val samStrings = singleEndFASTQRDD.map(seq => bwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.bwt, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, null, seq))
-            .map(r => singleEndBwaMemWorker2(bwaMemOptGlobal.value, r.regs, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, r.seq, numProcessed, samHeader))
-            .collect
-          numProcessed += samStrings.size
-          samWriter.writeStringArray(samStrings)
-          //samWriter.flush
-        } // Write to HDFS
-        else if (outputChoice == SAM_OUT_DFS) {
-          // worker1, worker2, and return SAM format strings
-          val samStrings = singleEndFASTQRDD.map(seq => bwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.bwt, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, null, seq))
-            .map(r => singleEndBwaMemWorker2(bwaMemOptGlobal.value, r.regs, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, r.seq, numProcessed, samHeader))
-          samStrings.saveAsTextFile(outputPath + "/body")
-        }
-
-        singleEndFASTQRDD.unpersist(true)
-      }
-
-      if (outputChoice == SAM_OUT_LOCAL)
-        samWriter.close
-      else if (outputChoice == SAM_OUT_DFS)
-        samHDFSWriter.close
-    } // output ADAM format to the distributed file system
-    else if (outputChoice == ADAM_OUT) {
-      var numProcessed: Long = 0
-
-      // Used to avoid time consuming adamRDD.count (numProcessed += adamRDD.count)
-      // Assume the number of read in one batch is the same (This is determined when uploading FASTQ to HDFS)
-      val fastqRDDLoaderTmp = new FASTQRDDLoader(sc, fastqHDFSInputPath, fastqInputFolderNum)
-      val rddTmp = fastqRDDLoaderTmp.SingleEndRDDLoadOneBatch(0, batchFolderNum)
-      val batchedReadNum = rddTmp.count
-      rddTmp.unpersist(true)
-
-      // Process the reads in a batched fashion
-      var i: Int = 0
-      var folderID: Int = 0
-      while (i < fastqInputFolderNum) {
-        val restFolderNum = fastqInputFolderNum - i
-        var singleEndFASTQRDD: RDD[FASTQRecord] = null
-        if (restFolderNum >= batchFolderNum) {
-          singleEndFASTQRDD = fastqRDDLoader.SingleEndRDDLoadOneBatch(i, batchFolderNum)
-          i += batchFolderNum
-        } else {
-          singleEndFASTQRDD = fastqRDDLoader.SingleEndRDDLoadOneBatch(i, restFolderNum)
-          i += restFolderNum
-        }
-
-        // worker1, worker2, and return SAM format strings
-        val adamRDD = singleEndFASTQRDD.map(seq => bwaMemWorker1(bwaMemOptGlobal.value, bwaIdxGlobal.value.bwt, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac, null, seq))
-          .flatMap(r => singleEndBwaMemWorker2ADAMOut(bwaMemOptGlobal.value, r.regs, bwaIdxGlobal.value.bns, bwaIdxGlobal.value.pac,
-            r.seq, numProcessed, samHeader, seqDict, readGroup))
-
-        AlignedReadRDD(adamRDD,
-          seqDict,
-          RecordGroupDictionary(Seq(readGroup))).saveAsParquet(outputPath + "/" + folderID.toString())
-        numProcessed += batchedReadNum
-        folderID += 1
-
-        singleEndFASTQRDD.unpersist(true)
-        adamRDD.unpersist(true)
-      }
+    val recordGroupDictionary = if (fragmentRdd.recordGroups.recordGroups.isEmpty) {
+      RecordGroupDictionary(Seq(readGroup))
     } else {
-      println("[Error] Undefined output choice" + outputChoice)
-      exit(1)
+      fragmentRdd.recordGroups
     }
 
+    val adamRDD = fragmentRdd.transform(rdd => {
+      rdd.flatMap(seq => {
+        seq.getAlignments.map(read => {
+          bwaMemWorker1(bwaMemOptGlobal.value,
+            bwaIdxGlobal.value.bwt,
+            bwaIdxGlobal.value.bns,
+            bwaIdxGlobal.value.pac,
+            null,
+            read)
+        })
+      }).zipWithUniqueId
+        .flatMap(p => {
+          val (read, id) = p
+          singleEndBwaMemWorker2ADAMOut(bwaMemOptGlobal.value,
+            read.regs,
+            bwaIdxGlobal.value.bns,
+            bwaIdxGlobal.value.pac,
+            read.seq,
+            id,
+            samHeader,
+            seqDict,
+            readGroup).map(read => {
+              val readBuffer = Buffer(read)
+              Fragment.newBuilder
+                .setAlignments(readBuffer)
+                .build
+            })
+        })
+    }).copy(sequences = seqDict,
+      recordGroups = recordGroupDictionary)
+      .saveAsParquet(outputPath)
   }
-
 }

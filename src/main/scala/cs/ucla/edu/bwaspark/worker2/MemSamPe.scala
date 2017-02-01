@@ -33,10 +33,8 @@ import cs.ucla.edu.bwaspark.worker2.MemRegToADAMSAM._
 import cs.ucla.edu.bwaspark.jni.{ MateSWJNI, MateSWType, SeqSWType, RefSWType }
 import cs.ucla.edu.bwaspark.sam.SAMHeader
 import cs.ucla.edu.bwaspark.util.LocusEncode._
-import cs.ucla.edu.avro.fastq._
 
-import org.bdgenomics.formats.avro.AlignmentRecord
-import org.bdgenomics.formats.avro.Contig
+import org.bdgenomics.formats.avro.{ AlignmentRecord, Contig, Fragment }
 import org.bdgenomics.adam.models.{ SequenceRecord, SequenceDictionary, RecordGroup }
 
 import htsjdk.samtools.SAMRecord
@@ -572,7 +570,7 @@ object MemSamPe {
    *  @return the number of added new alignments from mate-SW
    */
   def memSamPe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], id: Long,
-               seqsIn: PairEndFASTQRecord, alnRegVec: Array[Array[MemAlnRegType]], samHeader: SAMHeader): Int = {
+               seqsIn: Fragment, alnRegVec: Array[Array[MemAlnRegType]], samHeader: SAMHeader): Int = {
     var n: Int = 0
     var z: Array[Int] = new Array[Int](2)
     var subo: Int = 0
@@ -581,13 +579,13 @@ object MemSamPe {
     var seqsTrans: Array[Array[Byte]] = new Array[Array[Byte]](2)
     var noPairingFlag: Boolean = false
 
-    var seqs = new Array[FASTQRecord](2)
-    seqs(0) = seqsIn.getSeq0
-    seqs(1) = seqsIn.getSeq1
+    var seqs = new Array[AlignmentRecord](2)
+    seqs(0) = seqsIn.getAlignments.get(0)
+    seqs(1) = seqsIn.getAlignments.get(1)
 
-    val seqStr0 = new String(seqs(0).seq.array)
+    val seqStr0 = seqs(0).getSequence
     seqsTrans(0) = seqStr0.toCharArray.map(ele => locusEncode(ele))
-    val seqStr1 = new String(seqs(1).seq.array)
+    val seqStr1 = seqs(1).getSequence
     seqsTrans(1) = seqStr1.toCharArray.map(ele => locusEncode(ele))
 
     if ((opt.flag & MEM_F_NO_RESCUE) == 0) { // then perform SW for the best alignment
@@ -615,7 +613,7 @@ object MemSamPe {
         while (j < alnRegTmpVec(i).size && j < opt.maxMatesw) {
           var iBar = 0
           if (i == 0) iBar = 1
-          val ret = memMateSw(opt, bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqs(iBar).seqLength, seqsTrans(iBar), alnRegVec(iBar))
+          val ret = memMateSw(opt, bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqs(iBar).getSequence.length, seqsTrans(iBar), alnRegVec(iBar))
           n += ret._1
           alnRegVec(iBar) = ret._2
           j += 1
@@ -721,10 +719,10 @@ object MemSamPe {
             }
 
             // write SAM
-            val aln0 = memRegToAln(opt, bns, pac, seqs(0).seqLength, seqsTrans(0), alnRegVec(0)(z(0)))
+            val aln0 = memRegToAln(opt, bns, pac, seqs(0).getSequence.length, seqsTrans(0), alnRegVec(0)(z(0)))
             aln0.mapq = qSe(0).toShort
             aln0.flag |= 0x40 | extraFlag
-            val aln1 = memRegToAln(opt, bns, pac, seqs(1).seqLength, seqsTrans(1), alnRegVec(1)(z(1)))
+            val aln1 = memRegToAln(opt, bns, pac, seqs(1).getSequence.length, seqsTrans(1), alnRegVec(1)(z(1)))
             aln1.mapq = qSe(1).toShort
             aln1.flag |= 0x80 | extraFlag
 
@@ -759,8 +757,8 @@ object MemSamPe {
 
       var i = 0
       while (i < 2) {
-        if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), alnRegVec(i)(0))
-        else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), null)
+        if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), alnRegVec(i)(0))
+        else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), null)
 
         i += 1
       }
@@ -792,7 +790,7 @@ object MemSamPe {
       memRegToSAMSe(opt, bns, pac, seqs(0), seqsTrans(0), alnRegVec(0), 0x41 | extraFlag, alnVec(1), samHeader)
       memRegToSAMSe(opt, bns, pac, seqs(1), seqsTrans(1), alnRegVec(1), 0x81 | extraFlag, alnVec(0), samHeader)
 
-      if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+      if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
 
       n // return value
     }
@@ -1224,7 +1222,7 @@ object MemSamPe {
    *  @return (Reference segment array, selected alignment vector)
    */
   private def memSamPeGroupPrepare(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int,
-                                   alnRegVecPairs: Array[Array[Array[MemAlnRegType]]], seqsPairs: Array[Array[FASTQRecord]]): (Array[Array[Array[Array[RefType]]]], Array[Array[Vector[MemAlnRegType]]]) = {
+                                   alnRegVecPairs: Array[Array[Array[MemAlnRegType]]], seqsPairs: Array[Array[AlignmentRecord]]): (Array[Array[Array[Array[RefType]]]], Array[Array[Vector[MemAlnRegType]]]) = {
     var regRefArray: Array[Array[Array[Array[RefType]]]] = new Array[Array[Array[Array[RefType]]]](groupSize)
     var alnRegTmpVecPairs: Array[Array[Vector[MemAlnRegType]]] = new Array[Array[Vector[MemAlnRegType]]](groupSize)
 
@@ -1266,7 +1264,7 @@ object MemSamPe {
             regRefArray(k)(i)(j) = new Array[RefType](4)
             var iBar = 0
             if (i == 0) iBar = 1
-            regRefArray(k)(i)(j) = getAlnRegRef(bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqsPairs(k)(iBar).seqLength)
+            regRefArray(k)(i)(j) = getAlnRegRef(bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqsPairs(k)(iBar).getSequence.length)
             j += 1
           }
 
@@ -1300,7 +1298,7 @@ object MemSamPe {
    *  @return the number of added new alignments from mate-SW
    */
   private def memSamPeGroupMateSW(opt: MemOptType, pacLen: Long, pes: Array[MemPeStat], groupSize: Int,
-                                  seqsPairs: Array[Array[FASTQRecord]], seqsTransPairs: Array[Array[Array[Byte]]], regRefArray: Array[Array[Array[Array[RefType]]]],
+                                  seqsPairs: Array[Array[AlignmentRecord]], seqsTransPairs: Array[Array[Array[Byte]]], regRefArray: Array[Array[Array[Array[RefType]]]],
                                   alnRegVecPairs: Array[Array[Array[MemAlnRegType]]], alnRegTmpVecPairs: Array[Array[Vector[MemAlnRegType]]]): Int = {
     var k = 0
     var n = 0
@@ -1318,7 +1316,7 @@ object MemSamPe {
           while (j < alnRegTmpVecPairs(k)(i).size && j < opt.maxMatesw) {
             var iBar = 0
             if (i == 0) iBar = 1
-            val ret = memMateSwPreCompute(opt, pacLen, pes, alnRegTmpVecPairs(k)(i)(j), seqsPairs(k)(iBar).seqLength, seqsTransPairs(k)(iBar), alnRegVecPairs(k)(iBar), regRefArray(k)(i)(j))
+            val ret = memMateSwPreCompute(opt, pacLen, pes, alnRegTmpVecPairs(k)(i)(j), seqsPairs(k)(iBar).getSequence.length, seqsTransPairs(k)(iBar), alnRegVecPairs(k)(iBar), regRefArray(k)(i)(j))
             n += ret._1
             alnRegVecPairs(k)(iBar) = ret._2
             j += 1
@@ -1354,7 +1352,7 @@ object MemSamPe {
    *  @param samHeader the SAM header required to output SAM strings
    */
   private def memSamPeGroupRest(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long,
-                                seqsPairs: Array[Array[FASTQRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
+                                seqsPairs: Array[Array[AlignmentRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
                                 isSAMStrOutput: Boolean, samStringArray: Array[Array[String]], samHeader: SAMHeader) {
     var k = 0
     var sum = 0
@@ -1370,7 +1368,7 @@ object MemSamPe {
       var extraFlag: Int = 1
       var seqsTrans: Array[Array[Byte]] = new Array[Array[Byte]](2)
       var alnRegVec: Array[Array[MemAlnRegType]] = new Array[Array[MemAlnRegType]](2)
-      var seqs: Array[FASTQRecord] = new Array[FASTQRecord](2)
+      var seqs: Array[AlignmentRecord] = new Array[AlignmentRecord](2)
       var noPairingFlag: Boolean = false
 
       seqs(0) = seqsPairs(k)(0)
@@ -1478,10 +1476,10 @@ object MemSamPe {
               }
 
               // write SAM
-              val aln0 = memRegToAln(opt, bns, pac, seqs(0).seqLength, seqsTrans(0), alnRegVec(0)(z(0)))
+              val aln0 = memRegToAln(opt, bns, pac, seqs(0).getSequence.length, seqsTrans(0), alnRegVec(0)(z(0)))
               aln0.mapq = qSe(0).toShort
               aln0.flag |= 0x40 | extraFlag
-              val aln1 = memRegToAln(opt, bns, pac, seqs(1).seqLength, seqsTrans(1), alnRegVec(1)(z(1)))
+              val aln1 = memRegToAln(opt, bns, pac, seqs(1).getSequence.length, seqsTrans(1), alnRegVec(1)(z(1)))
               aln1.mapq = qSe(1).toShort
               aln1.flag |= 0x80 | extraFlag
 
@@ -1501,7 +1499,7 @@ object MemSamPe {
                 samStringArray(k)(1) = samStr1.str.dropRight(samStr1.size - samStr1.idx).mkString
               }
 
-              if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+              if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
 
             } else // else: goto no_pairing (TODO: in rare cases, the true hit may be long but with low score)
               noPairingFlag = true
@@ -1517,8 +1515,8 @@ object MemSamPe {
 
         var i = 0
         while (i < 2) {
-          if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), alnRegVec(i)(0))
-          else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), null)
+          if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), alnRegVec(i)(0))
+          else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), null)
 
           i += 1
         }
@@ -1557,7 +1555,7 @@ object MemSamPe {
           samStringArray(k)(1) = samStr1
         }
 
-        if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+        if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
       }
 
       k += 1
@@ -1566,18 +1564,18 @@ object MemSamPe {
   }
 
   /**
-   *  Initialize the sequence pair for pair-end FASTQRecord
+   *  Initialize the sequence pair for pair-end AlignmentRecord
    *
-   *  @param seqsPairsIn the input PairEndFASTQRecord arrays
-   *  @return the FASTQRecord arrays
+   *  @param seqsPairsIn the input Fragment arrays
+   *  @return the AlignmentRecord arrays
    */
-  private def initSingleEndPairs(seqsPairsIn: Array[PairEndFASTQRecord]): Array[Array[FASTQRecord]] = {
-    var seqsPairs = new Array[Array[FASTQRecord]](seqsPairsIn.size)
+  private def initSingleEndPairs(seqsPairsIn: Array[Fragment]): Array[Array[AlignmentRecord]] = {
+    var seqsPairs = new Array[Array[AlignmentRecord]](seqsPairsIn.size)
     var i = 0
     while (i < seqsPairsIn.size) {
-      seqsPairs(i) = new Array[FASTQRecord](2)
-      seqsPairs(i)(0) = seqsPairsIn(i).getSeq0
-      seqsPairs(i)(1) = seqsPairsIn(i).getSeq1
+      seqsPairs(i) = new Array[AlignmentRecord](2)
+      seqsPairs(i)(0) = seqsPairsIn(i).getAlignments.get(0)
+      seqsPairs(i)(1) = seqsPairsIn(i).getAlignments.get(1)
       i += 1
     }
 
@@ -1587,18 +1585,18 @@ object MemSamPe {
   /**
    *  Intialize the transformed sequence pair arrays
    *
-   *  @param seqsPairs the input FASTQRecord arrays
+   *  @param seqsPairs the input AlignmentRecord arrays
    *  @param groupSize the number of reads to be processed in this group
    *  @return the transformed sequence byte arrays
    */
-  private def initSeqsTransPairs(seqsPairs: Array[Array[FASTQRecord]], groupSize: Int): Array[Array[Array[Byte]]] = {
+  private def initSeqsTransPairs(seqsPairs: Array[Array[AlignmentRecord]], groupSize: Int): Array[Array[Array[Byte]]] = {
     var seqsTransPairs: Array[Array[Array[Byte]]] = new Array[Array[Array[Byte]]](groupSize)
     var k = 0
     while (k < groupSize) {
       seqsTransPairs(k) = new Array[Array[Byte]](2)
-      val seqStr0 = new String(seqsPairs(k)(0).seq.array)
+      val seqStr0 = seqsPairs(k)(0).getSequence
       seqsTransPairs(k)(0) = seqStr0.toCharArray.map(ele => locusEncode(ele))
-      val seqStr1 = new String(seqsPairs(k)(1).seq.array)
+      val seqStr1 = seqsPairs(k)(1).getSequence
       seqsTransPairs(k)(1) = seqStr1.toCharArray.map(ele => locusEncode(ele))
       k += 1
     }
@@ -1623,7 +1621,7 @@ object MemSamPe {
    *  @param samHeader the SAM header required to output SAM strings
    */
   def memSamPeGroup(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long,
-                    seqsPairsIn: Array[PairEndFASTQRecord], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
+                    seqsPairsIn: Array[Fragment], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
                     isSAMStrOutput: Boolean, samStringArray: Array[Array[String]], samHeader: SAMHeader) {
 
     var seqsPairs = initSingleEndPairs(seqsPairsIn)
@@ -1662,7 +1660,7 @@ object MemSamPe {
    *  @param alnRegVecPairs the alignments of the input pair-end reads in this group
    *  @return (mateSWArray, seqsSWArray, refSWArray, refSWArraySize): the four arrays used in native library to be passed through JNI
    */
-  private def memSamPeJNIPrep(groupSize: Int, maxMatesw: Int, seqsPairs: Array[Array[FASTQRecord]], seqsTransPairs: Array[Array[Array[Byte]]], refArray: Array[Array[Array[Array[RefType]]]],
+  private def memSamPeJNIPrep(groupSize: Int, maxMatesw: Int, seqsPairs: Array[Array[AlignmentRecord]], seqsTransPairs: Array[Array[Array[Byte]]], refArray: Array[Array[Array[Array[RefType]]]],
                               alnRegArray: Array[Array[Vector[MemAlnRegType]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]]): (Array[MateSWType], Array[SeqSWType], Array[RefSWType], Array[Int]) = {
 
     var mateSWVec: Vector[MateSWType] = scala.collection.immutable.Vector.empty
@@ -1681,7 +1679,7 @@ object MemSamPe {
         var seq = new SeqSWType
         seq.readIdx = k
         seq.pairIdx = i
-        seq.seqLength = seqsPairs(k)(i).seqLength
+        seq.seqLength = seqsPairs(k)(i).getSequence.length
         seq.seqTrans = seqsTransPairs(k)(i)
         seqsSWVec = seqsSWVec :+ seq
 
@@ -1845,7 +1843,7 @@ object MemSamPe {
    *  @return (mateSWArray, seqsSWArray, refSWArray, refSWArraySize): the four arrays used in native library to be passed through JNI
    */
   private def memSamPeGroupJNIPrepare(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int,
-                                      seqsPairs: Array[Array[FASTQRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]]): (Array[MateSWType], Array[SeqSWType], Array[RefSWType], Array[Int]) = {
+                                      seqsPairs: Array[Array[AlignmentRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]]): (Array[MateSWType], Array[SeqSWType], Array[RefSWType], Array[Int]) = {
 
     var mateSWVec: Vector[MateSWType] = scala.collection.immutable.Vector.empty
     var seqsSWVec: Vector[SeqSWType] = scala.collection.immutable.Vector.empty
@@ -1886,7 +1884,7 @@ object MemSamPe {
             var iBar = 0
             if (i == 0) iBar = 1
             var refSW = new RefSWType
-            refSW = getAlnRegRefJNI(bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqsPairs(k)(iBar).seqLength, k, i, j)
+            refSW = getAlnRegRefJNI(bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqsPairs(k)(iBar).getSequence.length, k, i, j)
             refSWVec = refSWVec :+ refSW
             j += 1
           }
@@ -1916,7 +1914,7 @@ object MemSamPe {
         var seq = new SeqSWType
         seq.readIdx = k
         seq.pairIdx = i
-        seq.seqLength = seqsPairs(k)(i).seqLength
+        seq.seqLength = seqsPairs(k)(i).getSequence.length
         seq.seqTrans = seqsTransPairs(k)(i)
         seqsSWVec = seqsSWVec :+ seq
 
@@ -2009,7 +2007,7 @@ object MemSamPe {
    *  @param samHeader the SAM header required to output SAM strings
    */
   def memSamPeGroupJNI(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long,
-                       seqsPairsIn: Array[PairEndFASTQRecord], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
+                       seqsPairsIn: Array[Fragment], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
                        isSAMStrOutput: Boolean, samStringArray: Array[Array[String]], samHeader: SAMHeader) {
 
     // prepare seqsPairs array
@@ -2076,7 +2074,7 @@ object MemSamPe {
    *  @return an array of ADAM format object
    */
   def memADAMPe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], id: Long,
-                seqsIn: PairEndFASTQRecord, alnRegVec: Array[Array[MemAlnRegType]], samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Array[AlignmentRecord] = {
+                seqsIn: Fragment, alnRegVec: Array[Array[MemAlnRegType]], samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Array[AlignmentRecord] = {
     var n: Int = 0
     var z: Array[Int] = new Array[Int](2)
     var subo: Int = 0
@@ -2086,13 +2084,13 @@ object MemSamPe {
     var noPairingFlag: Boolean = false
     var adamVec: Vector[AlignmentRecord] = scala.collection.immutable.Vector.empty
 
-    var seqs = new Array[FASTQRecord](2)
-    seqs(0) = seqsIn.getSeq0
-    seqs(1) = seqsIn.getSeq1
+    var seqs = new Array[AlignmentRecord](2)
+    seqs(0) = seqsIn.getAlignments.get(0)
+    seqs(1) = seqsIn.getAlignments.get(1)
 
-    val seqStr0 = new String(seqs(0).seq.array)
+    val seqStr0 = seqs(0).getSequence
     seqsTrans(0) = seqStr0.toCharArray.map(ele => locusEncode(ele))
-    val seqStr1 = new String(seqs(1).seq.array)
+    val seqStr1 = seqs(1).getSequence
     seqsTrans(1) = seqStr1.toCharArray.map(ele => locusEncode(ele))
 
     if ((opt.flag & MEM_F_NO_RESCUE) == 0) { // then perform SW for the best alignment
@@ -2120,7 +2118,7 @@ object MemSamPe {
         while (j < alnRegTmpVec(i).size && j < opt.maxMatesw) {
           var iBar = 0
           if (i == 0) iBar = 1
-          val ret = memMateSw(opt, bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqs(iBar).seqLength, seqsTrans(iBar), alnRegVec(iBar))
+          val ret = memMateSw(opt, bns.l_pac, pac, pes, alnRegTmpVec(i)(j), seqs(iBar).getSequence.length, seqsTrans(iBar), alnRegVec(iBar))
           n += ret._1
           alnRegVec(iBar) = ret._2
           j += 1
@@ -2226,10 +2224,10 @@ object MemSamPe {
             }
 
             // write ADAM
-            val aln0 = memRegToAln(opt, bns, pac, seqs(0).seqLength, seqsTrans(0), alnRegVec(0)(z(0)))
+            val aln0 = memRegToAln(opt, bns, pac, seqs(0).getSequence.length, seqsTrans(0), alnRegVec(0)(z(0)))
             aln0.mapq = qSe(0).toShort
             aln0.flag |= 0x40 | extraFlag
-            val aln1 = memRegToAln(opt, bns, pac, seqs(1).seqLength, seqsTrans(1), alnRegVec(1)(z(1)))
+            val aln1 = memRegToAln(opt, bns, pac, seqs(1).getSequence.length, seqsTrans(1), alnRegVec(1)(z(1)))
             aln1.mapq = qSe(1).toShort
             aln1.flag |= 0x80 | extraFlag
 
@@ -2257,8 +2255,8 @@ object MemSamPe {
 
       var i = 0
       while (i < 2) {
-        if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), alnRegVec(i)(0))
-        else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), null)
+        if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), alnRegVec(i)(0))
+        else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), null)
 
         i += 1
       }
@@ -2290,7 +2288,7 @@ object MemSamPe {
       adamVec = adamVec ++ memRegToADAMSe(opt, bns, pac, seqs(0), seqsTrans(0), alnRegVec(0), 0x41 | extraFlag, alnVec(1), samHeader, seqDict, readGroup)
       adamVec = adamVec ++ memRegToADAMSe(opt, bns, pac, seqs(1), seqsTrans(1), alnRegVec(1), 0x81 | extraFlag, alnVec(0), samHeader, seqDict, readGroup)
 
-      if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+      if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
 
     }
 
@@ -2318,7 +2316,7 @@ object MemSamPe {
    *  @return an array of ADAM format object
    */
   private def memADAMPeGroupRest(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long,
-                                 seqsPairs: Array[Array[FASTQRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
+                                 seqsPairs: Array[Array[AlignmentRecord]], seqsTransPairs: Array[Array[Array[Byte]]], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
                                  samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Array[AlignmentRecord] = {
     var k = 0
     var sum = 0
@@ -2336,7 +2334,7 @@ object MemSamPe {
       var extraFlag: Int = 1
       var seqsTrans: Array[Array[Byte]] = new Array[Array[Byte]](2)
       var alnRegVec: Array[Array[MemAlnRegType]] = new Array[Array[MemAlnRegType]](2)
-      var seqs: Array[FASTQRecord] = new Array[FASTQRecord](2)
+      var seqs: Array[AlignmentRecord] = new Array[AlignmentRecord](2)
       var noPairingFlag: Boolean = false
 
       seqs(0) = seqsPairs(k)(0)
@@ -2444,10 +2442,10 @@ object MemSamPe {
               }
 
               // write SAM
-              val aln0 = memRegToAln(opt, bns, pac, seqs(0).seqLength, seqsTrans(0), alnRegVec(0)(z(0)))
+              val aln0 = memRegToAln(opt, bns, pac, seqs(0).getSequence.length, seqsTrans(0), alnRegVec(0)(z(0)))
               aln0.mapq = qSe(0).toShort
               aln0.flag |= 0x40 | extraFlag
-              val aln1 = memRegToAln(opt, bns, pac, seqs(1).seqLength, seqsTrans(1), alnRegVec(1)(z(1)))
+              val aln1 = memRegToAln(opt, bns, pac, seqs(1).getSequence.length, seqsTrans(1), alnRegVec(1)(z(1)))
               aln1.mapq = qSe(1).toShort
               aln1.flag |= 0x80 | extraFlag
 
@@ -2458,7 +2456,7 @@ object MemSamPe {
               alnList1(0) = aln1
               adamVec = adamVec :+ memAlnToADAM(bns, seqs(1), seqsTrans(1), alnList1, 0, aln0, samHeader, seqDict, readGroup)
 
-              if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+              if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
 
             } else // else: goto no_pairing (TODO: in rare cases, the true hit may be long but with low score)
               noPairingFlag = true
@@ -2474,8 +2472,8 @@ object MemSamPe {
 
         var i = 0
         while (i < 2) {
-          if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), alnRegVec(i)(0))
-          else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).seqLength, seqsTrans(i), null)
+          if (alnRegVec(i) != null && alnRegVec(i).size > 0 && alnRegVec(i)(0).score >= opt.T) alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), alnRegVec(i)(0))
+          else alnVec(i) = memRegToAln(opt, bns, pac, seqs(i).getSequence.length, seqsTrans(i), null)
 
           i += 1
         }
@@ -2507,7 +2505,7 @@ object MemSamPe {
         adamVec = adamVec ++ memRegToADAMSe(opt, bns, pac, seqs(0), seqsTrans(0), alnRegVec(0), 0x41 | extraFlag, alnVec(1), samHeader, seqDict, readGroup)
         adamVec = adamVec ++ memRegToADAMSe(opt, bns, pac, seqs(1), seqsTrans(1), alnRegVec(1), 0x81 | extraFlag, alnVec(0), samHeader, seqDict, readGroup)
 
-        if (seqs(0).name != seqs(1).name) println("[Error] paired reads have different names: " + seqs(0).name + ", " + seqs(1).name)
+        if (seqs(0).getReadName != seqs(1).getReadName) println("[Error] paired reads have different names: " + seqs(0).getReadName + ", " + seqs(1).getReadName)
       }
 
       k += 1
@@ -2534,7 +2532,7 @@ object MemSamPe {
    *  @param readGroup the read group: used for ADAM format output
    *  @return an array of ADAM format object
    */
-  def memADAMPeGroup(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long, seqsPairsIn: Array[PairEndFASTQRecord],
+  def memADAMPeGroup(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long, seqsPairsIn: Array[Fragment],
                      alnRegVecPairs: Array[Array[Array[MemAlnRegType]]], samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Array[AlignmentRecord] = {
 
     var seqsPairs = initSingleEndPairs(seqsPairsIn)
@@ -2562,7 +2560,7 @@ object MemSamPe {
    *  @return an array of ADAM format object
    */
   def memADAMPeGroupJNI(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], pes: Array[MemPeStat], groupSize: Int, id: Long,
-                        seqsPairsIn: Array[PairEndFASTQRecord], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
+                        seqsPairsIn: Array[Fragment], alnRegVecPairs: Array[Array[Array[MemAlnRegType]]],
                         samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Array[AlignmentRecord] = {
 
     // prepare seqsPairs array
