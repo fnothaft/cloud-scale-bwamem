@@ -18,13 +18,9 @@
 package cs.ucla.edu.bwaspark.worker1
 
 import cs.ucla.edu.bwaspark.datatype._
-import cs.ucla.edu.bwaspark.debug._
-
-import scala.util.control.Breaks._
-import scala.collection.mutable.MutableList
-//import org.scalatest.Assertions._
-
 import java.io.{ FileReader, BufferedReader }
+import scala.collection.mutable.MutableList
+import scala.util.control.Breaks._
 
 class BWTSMem {
 
@@ -41,8 +37,6 @@ class BWTSMem {
   m_ok(1) = new BWTIntvType(0, 0, 0, 0, 0)
   m_ok(2) = new BWTIntvType(0, 0, 0, 0, 0)
   m_ok(3) = new BWTIntvType(0, 0, 0, 0, 0)
-  if (DebugFlag.debugBWTSMem == true)
-    m_ok.foreach(s => println("s.l = " + s.l))
   var mBWT: BWTType = _
 
   //local variable in the original bwt_extend
@@ -157,17 +151,9 @@ class BWTSMem {
   }
 
   def bwtExtend(is_back: Boolean) {
-    if (DebugFlag.debugBWTSMem == true)
-      println("[DEBUG] In bwtExtend, is_back = " + is_back)
     var cond: Boolean = false
     if (is_back) {
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Performing backword extension.")
-        println("[DEBUG] Enter bwt_2occ4.")
-      }
       bwt_2occ4(m_ik.k - 1, m_ik.k - 1 + m_ik.s)
-      if (DebugFlag.debugBWTSMem == true)
-        println("[DEBUG] Back from bwt_2occ4.")
       var i = 0
       while (i < 4) {
         m_ok(i).k = mBWT.L2(i) + 1 + m_tk(i)
@@ -181,35 +167,20 @@ class BWTSMem {
       m_ok(1).l = m_ok(2).l + m_ok(2).s
       m_ok(0).l = m_ok(1).l + m_ok(1).s
     } else {
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Performing forword extension.")
-        println("[DEBUG] Enter bwt_2occ4.")
-        println("[DEBUG] m_ik.s = " + m_ik.s)
-      }
       bwt_2occ4(m_ik.l - 1, m_ik.l - 1 + m_ik.s)
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Back from bwt_2occ4.")
-        println("[DEBUG] m_ik.s = " + m_ik.s)
-      }
       var i = 0
       while (i < 4) {
         m_ok(i).l = (mBWT.L2(i) + 1 + m_tk(i))
         m_ok(i).s = m_tl(i) - m_tk(i)
         i += 1
-        if (DebugFlag.debugBWTSMem == true)
-          println("[DEBUG] bp1: m_ok(" + i + ").s = " + m_ok(i).s + ", m_ik.s = " + m_ik.s)
       }
       cond = ((m_ik.l <= mBWT.primary) && (m_ik.l + m_ik.s - 1 >= mBWT.primary))
-      if (DebugFlag.debugBWTSMem == true)
-        println("[DEBUG] bp2: m_ik.s = " + m_ik.s)
       m_ok(3).k = m_ik.k
       if (cond) m_ok(3).k += 1
       m_ok(2).k = m_ok(3).k + m_ok(3).s
       m_ok(1).k = m_ok(2).k + m_ok(2).s
       m_ok(0).k = m_ok(1).k + m_ok(1).s
     }
-    if (DebugFlag.debugBWTSMem == true)
-      println("[DEBUG] At the end of bwtExtend: m_ik.s = " + m_ik.s)
   }
 
   //len: q's length
@@ -235,42 +206,24 @@ class BWTSMem {
       mBWT = bwt
       // start pos for ik = 0?
       m_ik = new BWTIntvType(0, x + 1, bwt.L2(q(x)) + 1, bwt.L2(3 - q(x)) + 1, bwt.L2(q(x) + 1) - bwt.L2(q(x)))
-      if (DebugFlag.debugBWTSMem == true)
-        println("[DEBUG] Initial interval: " + m_ik.startPoint + " " + m_ik.endPoint + " " + m_ik.k + " " + m_ik.l + " " + m_ik.s)
-      //var ok : Array[BWTIntvType] = new Array[BWTIntvType](4)
       var c: Int = 0
       var breaked: Boolean = false
 
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Begin forward search...")
-        println("[DEBUG] len = " + len + ", length of q = " + q.length + ", min_intv = " + min_intv_copy)
-      }
-
       var i: Int = x + 1
       while (i < len && breaked == false) { //forward search
-        if (DebugFlag.debugBWTSMem == true)
-          println("[DEBUG] i = " + i + " ,q[i] = " + q(i))
         if (q(i) < 4) { //an A/C/G/T base
           c = 3 - q(i)
-          if (DebugFlag.debugBWTSMem == true)
-            println("[DEBUG] Before forward extension: m_ik.s = " + m_ik.s)
           bwtExtend(false) //bwt_forward_extend
-          if (DebugFlag.debugBWTSMem == true)
-            println("[DEBUG] After forward extension: m_ok(" + c + ").s = " + m_ok(c).s + ", m_ik.s = " + m_ik.s)
           if (m_ok(c).s != m_ik.s) {
             var m_ik_copy = new BWTIntvType(m_ik.startPoint, m_ik.endPoint, m_ik.k, m_ik.l, m_ik.s)
             curr.+=:(m_ik_copy)
             if (m_ok(c).s < min_intv_copy) {
-              if (DebugFlag.debugBWTSMem == true)
-                println("[DEBUG] breaking!!!")
               breaked = true
             }
           }
           if (breaked == false) {
             m_ik.copy(m_ok(c))
             m_ik.endPoint = i + 1
-            if (DebugFlag.debugBWTSMem == true)
-              println("[DEBUG] curr(0).s = " + curr(0).s + ", m_ik.s = " + m_ik.s)
           }
         } else {
           var m_ik_copy = new BWTIntvType(m_ik.startPoint, m_ik.endPoint, m_ik.k, m_ik.l, m_ik.s)
@@ -285,24 +238,11 @@ class BWTSMem {
         curr.+=:(m_ik_copy)
       }
 
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Forward search ends. curr.length = " + curr.length + ", prev.length = " + prev.length)
-        curr.foreach(s => println("[DEBUG] " + s.startPoint + " " + s.endPoint + " " + s.k + " " + s.l + " " + s.s))
-      }
-
       //var ret : Int = curr(0).endPoint
       var ret: Int = curr.head.endPoint
       swap = curr
       curr = prev
       prev = swap
-
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] After swap: curr.length = " + curr.length + ", prev.length = " + prev.length)
-        prev.foreach(s => println("[DEBUG] " + s.startPoint + " " + s.endPoint + " " + s.k + " " + s.l + " " + s.s))
-
-        println("[DEBUG] ===========================================")
-        println("[DEBUG] Begin backward search. x = " + x)
-      }
 
       i = x - 1
 
@@ -315,27 +255,14 @@ class BWTSMem {
         }
 
         curr.clear
-        if (DebugFlag.debugBWTSMem == true)
-          println("[DEBUG] prev.length = " + prev.length)
         var j = 0
         while (j < prev.length) {
           m_ik = prev(j)
-          if (DebugFlag.debugBWTSMem == true)
-            println("[DEBUG] Input for bwtExtend: " + m_ik.startPoint + " " + m_ik.endPoint + " " + m_ik.k + " " + m_ik.l + " " + m_ik.s)
           bwtExtend(true) //bwt_extend on p
-          if (DebugFlag.debugBWTSMem == true) {
-            if (c >= 0)
-              println("[DEBUG] After bwtExtend m_ok(" + c + ").s = " + m_ok(c).s)
-            else
-              println("[DEBUG] After bwtExtend c = -1")
-          }
-
           if (c < 0 || m_ok(c).s < min_intv_copy) {
             if (curr.isEmpty) {
               //if (mem.isEmpty || i + 1 < mem.last.startPoint) {
               if (mem.isEmpty || i + 1 < mem.head.startPoint) {
-                if (DebugFlag.debugBWTSMem == true)
-                  println("[DEBUG] Adding to mem!")
                 var m_ik_copy: BWTIntvType = new BWTIntvType(0, 0, 0, 0, 0)
                 m_ik_copy.copy(m_ik)
                 m_ik_copy.startPoint = i + 1
@@ -358,14 +285,6 @@ class BWTSMem {
           prev = swap
           i -= 1
         }
-      }
-
-      if (DebugFlag.debugBWTSMem == true) {
-        println("[DEBUG] Backward search ends.")
-        println("[DEBUG] Results: ");
-        println("[DEBUG] Updated start: " + ret)
-        println("[DEBUG] mem.length = " + mem.length)
-        mem.foreach(s => println(s.startPoint + " " + s.endPoint + " " + s.k + " " + s.l + " " + s.s))
       }
 
       ret

@@ -18,12 +18,10 @@
 package cs.ucla.edu.bwaspark.worker1
 
 import cs.ucla.edu.bwaspark.datatype._
-import scala.math._
-import scala.collection.mutable.MutableList
 import cs.ucla.edu.bwaspark.worker1.SAPos2RefPos._
-import java.util.TreeSet
-import java.util.Comparator
-import cs.ucla.edu.bwaspark.debug.DebugFlag._
+import java.util.{ Comparator, TreeSet }
+import scala.collection.mutable.MutableList
+import scala.math._
 
 //standalone object for generating all MEM chains for each read
 object MemChain {
@@ -31,10 +29,6 @@ object MemChain {
   //get the next start point for forward and backward extension
 
   def smemNext(itr: SMemItrType, splitLen: Int, splitWidth: Int, startWidth: Int): Array[BWTIntvType] = {
-
-    if (debugLevel > 0) {
-      println("Perform function smemNext")
-    }
 
     //if the start point has exceeded the length
     //or it has gone back to negative number
@@ -48,9 +42,6 @@ object MemChain {
       if (itr.start == itr.len) null
 
       else {
-        if (debugLevel > 0) {
-          println("smemNext: non-trivial execution")
-        }
         //skipping all the N bases, the point is actually the real start point
         var oriStart = itr.start
 
@@ -59,20 +50,7 @@ object MemChain {
         //create a BWTSMem object to call the function
         val smemObj = new BWTSMem
 
-        if (debugLevel > 0) {
-          println("smemNext: carry out function bwtSMem1")
-        }
-
         itr.start = smemObj.bwtSMem1(itr.bwt, itr.len, itr.query, oriStart, startWidth, itr.matches, itr.tmpVec0, itr.tmpVec1)
-
-        if (debugLevel > 0) {
-          println("The original run of bwtSMem1")
-          itr.matches.map(ele => ele.print())
-        }
-
-        if (debugLevel > 0) {
-          println("smemNext: the first run of function bwtSMem1 done")
-        }
 
         assert(itr.matches.length > 0) //in theory, there is at least one match
 
@@ -81,26 +59,11 @@ object MemChain {
         var maxLength = maxBWTIntv.endPoint - maxBWTIntv.startPoint
         var middlePointOfMax = (maxBWTIntv.endPoint + maxBWTIntv.startPoint) / 2
 
-        if (debugLevel > 0) {
-          print("Max BWT Interval: ")
-          maxBWTIntv.print()
-          println("Max length: " + maxLength)
-          println("Middle point is " + middlePointOfMax)
-        }
-
         //if the longest SMEM is unique and long
         if (splitLen > 0 && splitLen <= maxLength && maxBWTIntv.s <= splitWidth) {
-          if (debugLevel > 0) {
-            print("The max BWT is unique and long: ")
-            maxBWTIntv.print()
-          }
 
           //re-do the seeding process starting from the middle of the longest MEM
           val tmp = smemObj.bwtSMem1(itr.bwt, itr.len, itr.query, middlePointOfMax, (maxBWTIntv.s + 1).toInt, itr.sub, itr.tmpVec0, itr.tmpVec1)
-          if (debugLevel > 0) {
-            println("The reseeding run of bwtSMem1")
-            itr.sub.map(ele => ele.print())
-          }
 
           //only some seeds in the sub array can still be there
           //1)length of the seed should be no less than maxLength/2
@@ -113,11 +76,6 @@ object MemChain {
         }
         var res: Array[BWTIntvType] = itr.matches.toArray
 
-        if (debugLevel > 0) {
-          println("The final result of bwtSMem1 for one iteration")
-          res.map(ele => ele.print())
-        }
-
         res
       }
     }
@@ -126,10 +84,6 @@ object MemChain {
   //generate a chain tree for each read
 
   def generateChainTree(opt: MemOptType, l_pac: Long, smemItr: SMemItrType): TreeSet[MemChainType] = {
-
-    if (debugLevel > 0) {
-      println("Perform function generateChainTree")
-    }
 
     //calculate splitLen
     val splitLen = min((opt.minSeedLen * opt.splitFactor + 0.499).toInt, smemItr.len)
@@ -151,18 +105,10 @@ object MemChain {
     //1) merge it to existing chain
     //2) generate new chain from it
 
-    if (debugLevel > 0) {
-      println("generateChainTree: carry out the main while loop with start width " + startWidth + ", split length " + splitLen + ", and split width " + opt.splitWidth)
-    }
-
     bwtIntvOnPoint = smemNext(smemItr, splitLen, opt.splitWidth, startWidth)
 
-    if (debugLevel > 0) {
-      println("generateChainTree: finish the 1st smemNext")
-    }
     var idx = 0;
     while (bwtIntvOnPoint != null) {
-      if (debugLevel > 0) { println("It is the " + idx + "th times for the while loop"); idx += 1 }
       //traverse all the seeds
       for (i <- 0 until bwtIntvOnPoint.length) {
 
@@ -179,8 +125,6 @@ object MemChain {
           for (j <- 0 until bwtIntvOnPoint(i).s.toInt) {
 
             //prepare for generating a new seed
-            if (debugLevel > 0) println("The loop index for j-loop is: " + j)
-            if (debugLevel > 0) println("The parameter for calling suffixArrayPos2ReferencePos: " + (bwtIntvOnPoint(i).k + j))
             var rBeg = suffixArrayPos2ReferencePos(smemItr.bwt, bwtIntvOnPoint(i).k + j)
             var qBeg = bwtIntvOnPoint(i).startPoint
             var len = seedLen
@@ -205,31 +149,13 @@ object MemChain {
                   //because lower.pos < tmpChain.pos
                   //having refPoint + 1 to handle if lower.pos == tmpChain.pos
                   val tmpChain = new MemChainType(refPoint + 1, null)
-                  //if (debugLevel > 0) {
-                  //  println("The tmpChain's refPoint is: " + (refPoint+1))
-                  //  println("Display the current chain tree")
-                  //  var itr = chainTree.iterator()
-                  //  while (itr.hasNext) {
-                  //    itr.next().print()
-                  //  }
-                  //}
                   val res = chainTree.lower(tmpChain)
                   val tmp = chainTree.higher(tmpChain)
-                  if (debugLevel > 0) {
-                    if (res == null && chainTree.size != 0) println("Chain Tree is not empty but no lower node found")
-                    else { println("Lower chain found, which is:"); res.print() }
-                    if (tmp == null && chainTree.size != 0) println("Chain Tree is not empty but no higher node found")
-                    else { println("Higher chain found, which is:"); tmp.print() }
-                  }
                   res
                 }
               }
 
               val targetChain = findClosestChain(chainTree, newSeed.rBeg)
-
-              if (debugLevel > 0) {
-                println("New seed is: (rBeg, qBeg, len) " + rBeg + " " + qBeg + " " + len)
-              }
 
               //test if the seed can be merged into some existing chain
               //return true/false
@@ -241,18 +167,10 @@ object MemChain {
                 //get query begin and end, reference begin and end
                 //!!!to clarify!!!: the order of seeds in a chain
                 //qBeg sorting? or rBeg sorting?
-                if (debugLevel > 0) {
-                  println("Trying merge a seed to a chain")
-                  println("The seed is: (rBeg, qBeg, len) " + seed.rBeg + " " + seed.qBeg + " " + seed.len)
-                  println("The chain is: ")
-                  chain.print()
-                }
                 val qBegChain = chain.seeds.head.qBeg
                 val rBegChain = chain.seeds.head.rBeg
                 val qEndChain = chain.seeds.last.qBeg + chain.seeds.last.len
                 val rEndChain = chain.seeds.last.rBeg + chain.seeds.last.len
-
-                if (debugLevel > 0) println("qBeg, rBeg, qEnd, rEnd of the chain are: " + qBegChain + " " + rBegChain + " " + qEndChain + " " + rEndChain)
 
                 //if the seed is fully contained by the chain, return true
                 if (qBegChain <= seed.qBeg && qEndChain >= seed.qBeg + seed.len &&
@@ -280,11 +198,6 @@ object MemChain {
               }
 
               val isMergable = if (targetChain == null) false else tryMergeSeedToChain(opt, l_pac, targetChain, newSeed)
-
-              if (debugLevel > 0) {
-                if (!isMergable) println("Cannot be merged to any existing chain")
-                else targetChain.print()
-              }
 
               //add the seed as a new chain if not mergable
               if (!isMergable) {
@@ -315,12 +228,7 @@ object MemChain {
 
     //finally, return the tree
 
-    if (debugLevel > 0) {
-      println("End function generateChainTree")
-    }
-
     chainTree
-
   }
 
   def traverseChainTree(chainTree: TreeSet[MemChainType]): Array[MemChainType] = {
@@ -341,16 +249,8 @@ object MemChain {
   //generate chains for each read
   def generateChains(opt: MemOptType, bwt: BWTType, l_pac: Long, len: Int, seq: Array[Byte]): Array[MemChainType] = {
 
-    if (debugLevel > 0) {
-      println("Perform function generateChains")
-    }
-
     //if the query is shorter than the seed length, no match, return null
     if (len < opt.minSeedLen) {
-      if (debugLevel > 0) {
-        println("Warning: the length of read is too short")
-        println("End function generateChains")
-      }
       null
     } //the else part the real meaty part for this function
     else {
@@ -365,27 +265,8 @@ object MemChain {
         new MutableList[BWTIntvType]()) //temporary array 1
 
       //generate a tree for all chains
-      if (debugLevel > 0) {
-        println("generateChains 1st: generate a tree of chains (start)")
-      }
       val chainTree = generateChainTree(opt, l_pac, smemItr)
-      if (debugLevel > 0) {
-        println("generateChains 1st: generate a tree of chains (end)")
-      }
-
-      //return value, the chains to be generated for a read
-      if (debugLevel > 0) {
-        println("generateChains 2nd: transform the chain tree into a chain array (start)")
-      }
-      val chains = traverseChainTree(chainTree)
-      if (debugLevel > 0) {
-        println("generateChains 2nd: transform the chain tree into a chain array (end)")
-      }
-
-      if (debugLevel > 0) {
-        println("End function generateChains (no warning)")
-      }
-      chains
+      traverseChainTree(chainTree)
     }
   }
 }

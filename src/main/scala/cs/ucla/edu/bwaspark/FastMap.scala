@@ -31,7 +31,6 @@ import cs.ucla.edu.bwaspark.worker2.MemSamPe._
 import cs.ucla.edu.bwaspark.sam.SAMHeader
 import cs.ucla.edu.bwaspark.sam.SAMWriter
 import cs.ucla.edu.bwaspark.sam.SAMHDFSWriter
-import cs.ucla.edu.bwaspark.debug.DebugFlag._
 import cs.ucla.edu.bwaspark.util.SWUtil._
 import cs.ucla.edu.bwaspark.commandline._
 import cs.ucla.edu.bwaspark.broadcast.ReferenceBroadcast

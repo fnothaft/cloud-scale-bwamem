@@ -20,7 +20,6 @@ package cs.ucla.edu.bwaspark.worker1
 import cs.ucla.edu.bwaspark.datatype._
 import scala.collection.mutable.MutableList
 import scala.math._
-import cs.ucla.edu.bwaspark.debug.DebugFlag._
 
 //define a chain wrapper for sorting and filtering
 //one wrapper will maintain two chains,
@@ -87,30 +86,20 @@ object MemChainFilter {
       }
       //else, do nothing
     }
-    if (debugLevel > 0) println("Weight = " + min(weightQuery, weightRef))
-
     min(weightQuery, weightRef)
-
   }
 
   //define filtering function
   //generate new chain array
   def memChainFilter(opt: MemOptType, chains: Array[MemChainType]): Array[MemChainType] = {
 
-    if (debugLevel > 0) {
-      println("Perform function memChainFilter")
-      println("Chains before filtering:")
-      println("#chains: " + chains.length)
-      chains.map(ele => ele.print())
-    }
-
     //if there is less than one chain in chain array
     //we do not need to filter it at all
-
-    if (chains == null) null
-    else if (chains.length <= 1) chains
-
-    else {
+    if (chains == null) {
+      null
+    } else if (chains.length <= 1) {
+      chains
+    } else {
 
       //first step: create equivalent wrapper array for chain array
       var chainWrapperArray = new Array[MemChainWrapperType](chains.length)
@@ -126,12 +115,6 @@ object MemChainFilter {
       //sort by weight decreasingly
       chainWrapperArray = chainWrapperArray.sortWith((a, b) => ((a.weight > b.weight) || (a.weight == b.weight && a.mainChain.pos < b.mainChain.pos)))
 
-      if (debugLevel > 0) {
-        println("The first step: sorting by weight")
-        println("#chains: " + chainWrapperArray.length)
-        chainWrapperArray.map(ele => ele.mainChain.print())
-      }
-
       //second step: filtering
       //var wrappersAfterFilter = new MutableList[MemChainWrapperType]()
       var wrappersAfterFilter = new Array[MemChainWrapperType](chainWrapperArray.length)
@@ -145,8 +128,6 @@ object MemChainFilter {
       //if there is significant overlap, should be filtered
       for (i <- 1 until chainWrapperArray.length) {
 
-        if (debugLevel > 0) println("The i-loop index for filtering is: " + i)
-
         //traverse all the chains in the result array
         //if significant overlap found, break
         //we use a boolean flag to mark it
@@ -155,10 +136,6 @@ object MemChainFilter {
         var isInSecondWrapper = false
 
         while (!isOverlap && j < idx) {
-          //          if (debugLevel > 0) println("The j-loop index for " + i + "th i-loop filtering is: " + j)
-          //judge if there is significant overlap between i and j
-          //          val beginMax = if (wrappersAfterFilter(j).beg > chainWrapperArray(i).beg) wrappersAfterFilter(j).beg else chainWrapperArray(i).beg
-          //          val endMin = if (wrappersAfterFilter(j).end > chainWrapperArray(i).end) wrappersAfterFilter(j).end else chainWrapperArray(i).end
           val beginMax = max(wrappersAfterFilter(j).beg, chainWrapperArray(i).beg)
           val endMin = min(wrappersAfterFilter(j).end, chainWrapperArray(i).end)
 
@@ -190,7 +167,6 @@ object MemChainFilter {
 
       //combine the two collections
       var tmpWrapperArray = new Array[MemChainWrapperType](idx + secondaryWrappers.length)
-      if (debugLevel > 0) println("The length of the secondaryWrappers is: " + secondaryWrappers.length)
       for (i <- 0 until idx) tmpWrapperArray(i) = wrappersAfterFilter(i)
       for (wrapper <- secondaryWrappers) {
         tmpWrapperArray(idx) = wrapper
@@ -202,36 +178,6 @@ object MemChainFilter {
 
       //get the new chain array
       var newChainArray: Array[MemChainType] = tmpWrapperArray.map(ele => ele.mainChain).toArray
-
-      //for (i <- 0 until idx) {
-      //  //firstly, insert mainChain and secondChain(if available)
-      //  newChainList += wrappersAfterFilter(i).mainChain
-      //  if (wrappersAfterFilter(i).secondChain != null) newChainList += wrappersAfterFilter(i).secondChain
-      //}
-      ////Then, remove duplicate
-      //val newChainArray = (newChainList.toArray).distinct
-
-      /*      for (i <- 0 until idx) {
-        //firstly, insert mainChain
-        newChainList += wrappersAfterFilter(i).mainChain
-      }
-
-      for (i <- 0 until idx) {
-        //secondly, insert secondChain if it is avaiable and does not appear before
-        if (wrappersAfterFilter(i).secondChain != null && !newChainList.contains(wrappersAfterFilter(i).secondChain)) {
-          newChainList += wrappersAfterFilter(i).secondChain
-          if (debugLevel > 0) println("Valid secondChain found")
-        }
-      }
-      val newChainArray = newChainList.toArray
-*/
-
-      if (debugLevel > 0) {
-        println("Chains after filtering:")
-        println("#chains: " + newChainArray.length)
-        newChainArray.map(ele => ele.print())
-        println("End function memChainFilter")
-      }
 
       //return newChainArray
       newChainArray

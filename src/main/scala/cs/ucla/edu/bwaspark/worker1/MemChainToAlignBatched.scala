@@ -22,7 +22,6 @@ import scala.collection.mutable.MutableList
 import cs.ucla.edu.bwaspark.datatype._
 import cs.ucla.edu.bwaspark.util.BNTSeqUtil._
 import cs.ucla.edu.bwaspark.util.SWUtil._
-import cs.ucla.edu.bwaspark.debug.DebugFlag._
 
 import accUCLA.api._
 import java.util._

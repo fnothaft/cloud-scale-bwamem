@@ -18,21 +18,21 @@
 package cs.ucla.edu.bwaspark.worker1
 
 import cs.ucla.edu.bwaspark.datatype._
-import scala.collection.mutable.MutableList
-import java.util.TreeSet
-import java.util.Comparator
+import cs.ucla.edu.bwaspark.util.LocusEncode._
 import cs.ucla.edu.bwaspark.worker1.MemChain._
 import cs.ucla.edu.bwaspark.worker1.MemChainFilter._
 import cs.ucla.edu.bwaspark.worker1.MemChainToAlignBatched._
 import cs.ucla.edu.bwaspark.worker1.MemSortAndDedup._
-import cs.ucla.edu.bwaspark.util.LocusEncode._
-import cs.ucla.edu.bwaspark.debug.DebugFlag._
+import java.util.TreeSet
+import java.util.Comparator
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
+import org.bdgenomics.utils.misc.Logging
+import scala.collection.mutable.MutableList
 
 //this standalone object defines the main job of BWA MEM:
 //1)for each read, generate all the possible seed chains
 //2)using SW algorithm to extend each chain to all possible aligns
-object BWAMemWorker1Batched {
+object BWAMemWorker1Batched extends Logging {
 
   /**
    *  Perform BWAMEM worker1 function for single-end alignment
@@ -106,18 +106,17 @@ object BWAMemWorker1Batched {
         chainsFilteredArray(i).foreach(chain => {
           numOfSeedsArray(i) += chain.seeds.length
         })
-        if (debugLevel == 1) println("Finished the calculation of pre-results of Smith-Waterman")
-        if (debugLevel == 1) println("The number of reads in this pack is: " + numOfReads)
+        log.debug("Finished the calculation of pre-results of Smith-Waterman\nThe number of reads in this pack is: %d".format(numOfReads))
         regArrays(i) = new MemAlnRegArrayType
         regArrays(i).maxLength = numOfSeedsArray(i)
         regArrays(i).regs = new Array[MemAlnRegType](numOfSeedsArray(i))
       }
       i = i + 1;
     }
-    if (debugLevel == 1) println("Finished the pre-processing part")
+    log.debug("Finished the pre-processing part")
 
     memChainToAlnBatched(opt, bns.l_pac, pac, lenArray, readArray, numOfReads, preResultsOfSW, chainsFilteredArray, regArrays, runOnFPGA, threshold)
-    if (debugLevel == 1) println("Finished the batched-processing part")
+    log.debug("Finished the batched-processing part")
     regArrays.foreach(ele => { if (ele != null) ele.regs = ele.regs.filter(r => (r != null)) })
     regArrays.foreach(ele => { if (ele != null) ele.maxLength = ele.regs.length })
     i = 0;
