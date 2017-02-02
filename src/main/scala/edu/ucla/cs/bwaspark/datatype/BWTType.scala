@@ -17,18 +17,11 @@
 
 package edu.ucla.cs.bwaspark.datatype
 
-import java.io.FileInputStream
-import java.nio.channels.FileChannel
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
-import scala.Serializable
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.Path;
-
 import edu.ucla.cs.bwaspark.datatype.BinaryFileReadUtil._
+import java.io.{ FileInputStream, ObjectInputStream, ObjectOutputStream }
+import java.nio.channels.FileChannel
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 class BWTType extends Serializable {
   // Data Structure
@@ -64,8 +57,8 @@ class BWTType extends Serializable {
    */
   private def SALoad(saFile: String) {
     val conf = new Configuration
-    val fs = FileSystem.get(conf)
     val path = new Path(saFile)
+    val fs = path.getFileSystem(conf)
     if (fs.exists(path)) {
       val fc = fs.open(path)
       // Read primary in .sa file
@@ -126,8 +119,8 @@ class BWTType extends Serializable {
    */
   private def BWTLoad(bwtFile: String) {
     val conf = new Configuration
-    val fs = FileSystem.get(conf)
     val path = new Path(bwtFile)
+    val fs = path.getFileSystem(conf)
     if (fs.exists(path)) {
       var fc = fs.open(path)
       var fileSize = fs.getFileStatus(path).getLen

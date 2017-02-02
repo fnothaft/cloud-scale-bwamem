@@ -17,17 +17,11 @@
 
 package edu.ucla.cs.bwaspark.datatype
 
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
-import java.io.{ FileInputStream, IOException }
-import java.nio.channels.FileChannel
 import edu.ucla.cs.bwaspark.datatype.BinaryFileReadUtil._
-import scala.Serializable
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.Path;
+import java.io.{ FileInputStream, IOException, ObjectInputStream, ObjectOutputStream }
+import java.nio.channels.FileChannel
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 //BWAIdxType: maintaining all the information of BWA Index generated from FastA Reference
 class BWAIdxType extends Serializable {
@@ -71,8 +65,8 @@ class BWAIdxType extends Serializable {
         def pacLoader(filename: String, length: Long): Array[Byte] = {
           //to add: reading binary file
           val conf = new Configuration
-          val fs = FileSystem.get(conf)
           val path = new Path(filename)
+          val fs = path.getFileSystem(conf)
           //var reader: AnyRef = null
           if (fs.exists(path)) {
             val reader = fs.open(path)

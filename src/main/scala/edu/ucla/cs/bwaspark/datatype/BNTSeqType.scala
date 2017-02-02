@@ -14,16 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package edu.ucla.cs.bwaspark.datatype
 
 import java.io._
-import scala.Serializable
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 class BNTSeqType extends Serializable {
   //length of contents in .pac file
@@ -53,8 +48,8 @@ class BNTSeqType extends Serializable {
     //define a loader for .ann file
     def annLoader(filename: String): (Array[BNTAnnType], Long, Int, Int) = {
       val conf = new Configuration
-      val fs = FileSystem.get(conf)
       val path = new Path(filename)
+      val fs = path.getFileSystem(conf)
       var annBufferedReader: BufferedReader = null
       if (fs.exists(path)) {
         annBufferedReader = new BufferedReader(new InputStreamReader(fs.open(path)))
@@ -92,8 +87,8 @@ class BNTSeqType extends Serializable {
     //define a loader for .amb file
     def ambLoader(filename: String): (Array[BNTAmbType], Int) = {
       val conf = new Configuration
-      val fs = FileSystem.get(conf)
       val path = new Path(filename)
+      val fs = path.getFileSystem(conf)
       var ambBufferedReader: BufferedReader = null
       if (fs.exists(path)) {
         ambBufferedReader = new BufferedReader(new InputStreamReader(fs.open(path)))
