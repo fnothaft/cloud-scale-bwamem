@@ -29,7 +29,6 @@ import edu.ucla.cs.bwaspark.worker1.BWAMemWorker1._
 import edu.ucla.cs.bwaspark.worker2.BWAMemWorker2._
 import edu.ucla.cs.bwaspark.FastMap.memMain
 import edu.ucla.cs.bwaspark.commandline._
-import edu.ucla.cs.bwaspark.dnaseq._
 
 import org.bdgenomics.adam.rdd.ADAMContext._
 
