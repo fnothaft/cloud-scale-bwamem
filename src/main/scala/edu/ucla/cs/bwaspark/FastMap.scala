@@ -30,7 +30,6 @@ import edu.ucla.cs.bwaspark.worker2.BWAMemWorker2._
 import edu.ucla.cs.bwaspark.worker2.MemSamPe._
 import edu.ucla.cs.bwaspark.sam.SAMHeader
 import edu.ucla.cs.bwaspark.util.SWUtil._
-import edu.ucla.cs.bwaspark.commandline._
 import edu.ucla.cs.bwaspark.broadcast.ReferenceBroadcast
 
 import org.bdgenomics.formats.avro.{ AlignmentRecord, Fragment }
@@ -69,16 +68,14 @@ object FastMap {
    *  @param sc the spark context object
    *  @param bwamemArgs the arguments of CS-BWAMEM
    */
-  def memMain(sc: SparkContext, bwamemArgs: BWAMEMCommand) {
+  def memMain(sc: SparkContext, bwamemArgs: CloudScaleBWAMEMArgs) {
     val fastaLocalInputPath = bwamemArgs.fastaInputPath // the local BWA index files (bns, pac, and so on)
     val fastqHDFSInputPath = bwamemArgs.fastqHDFSInputPath // the raw read file stored in HDFS
     val isPairEnd = bwamemArgs.isPairEnd // perform pair-end or single-end mapping
-    val batchFolderNum = bwamemArgs.batchedFolderNum // the number of raw read folders in a batch to be processed
-    val isPSWBatched = bwamemArgs.isPSWBatched // whether the pair-end Smith Waterman is performed in a batched way
-    val subBatchSize = bwamemArgs.subBatchSize // the number of reads to be processed in a subbatch
-    val isPSWJNI = bwamemArgs.isPSWJNI // whether the native JNI library is called for better performance
-    val jniLibPath = bwamemArgs.jniLibPath // the JNI library path in the local machine
-    val outputChoice = bwamemArgs.outputChoice // the output format choice
+    val isPSWBatched = bwamemArgs.swSubBatchSize > 1 // whether the pair-end Smith Waterman is performed in a batched way
+    val subBatchSize = bwamemArgs.swSubBatchSize // the number of reads to be processed in a subbatch
+    val isPSWJNI = bwamemArgs.pswJniLibPath != null // whether the native JNI library is called for better performance
+    val jniLibPath = bwamemArgs.pswJniLibPath // the JNI library path in the local machine
     val outputPath = bwamemArgs.outputPath // the output path in the local or distributed file system
     val readGroupString = bwamemArgs.headerLine // complete read group header line: Example: @RG\tID:foo\tSM:bar
 
@@ -87,15 +84,6 @@ object FastMap {
     var seqDict: SequenceDictionary = null
     var readGroupDict: RecordGroupDictionary = null
     var readGroup: RecordGroup = null
-
-    // get HDFS information
-    val conf: Configuration = new Configuration
-    val hdfs: FileSystem = FileSystem.get(new URI(fastqHDFSInputPath), conf)
-    val status = hdfs.listStatus(new Path(fastqHDFSInputPath))
-    val fastqInputFolderNum = status.size // the number of folders generated in the HDFS for the raw reads
-    bwamemArgs.fastqInputFolderNum = fastqInputFolderNum // the number of folders generated in the HDFS for the raw reads
-    println("HDFS master: " + hdfs.getUri.toString)
-    println("Input HDFS folder number: " + bwamemArgs.fastqInputFolderNum)
 
     if (samHeader.bwaSetReadGroup(readGroupString)) {
       println("Head line: " + samHeader.readGroupLine)
@@ -128,7 +116,7 @@ object FastMap {
       memPairEndMapping(sc, bwamemArgs, bwaMemOpt, bwaIdx, samHeader, seqDict, readGroup)
     } else {
       // single-end read mapping
-      memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, fastqInputFolderNum, batchFolderNum, bwaMemOpt, bwaIdx, outputChoice, outputPath, samHeader, seqDict, readGroup)
+      memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, bwaMemOpt, bwaIdx, outputPath, samHeader, seqDict, readGroup)
     }
 
   }
@@ -151,31 +139,27 @@ object FastMap {
    *  @param seqDict (optional) the sequences (chromosome) dictionary: used for ADAM format output
    *  @param readGroup (optional) the read group: used for ADAM format output
    */
-  private def memPairEndMapping(sc: SparkContext, bwamemArgs: BWAMEMCommand, bwaMemOpt: MemOptType, bwaIdx: BWAIdxType,
+  private def memPairEndMapping(sc: SparkContext, bwamemArgs: CloudScaleBWAMEMArgs, bwaMemOpt: MemOptType, bwaIdx: BWAIdxType,
                                 samHeader: SAMHeader, seqDict: SequenceDictionary = null, readGroup: RecordGroup = null) {
-    // Get the input arguments
     val fastaLocalInputPath = bwamemArgs.fastaInputPath // the local BWA index files (bns, pac, and so on)
     val fastqHDFSInputPath = bwamemArgs.fastqHDFSInputPath // the raw read file stored in HDFS
-    val fastqInputFolderNum = bwamemArgs.fastqInputFolderNum // the number of folders generated in the HDFS for the raw reads
-    val batchFolderNum = bwamemArgs.batchedFolderNum // the number of raw read folders in a batch to be processed
-    val isPSWBatched = bwamemArgs.isPSWBatched // whether the pair-end Smith Waterman is performed in a batched way
-    val subBatchSize = bwamemArgs.subBatchSize // the number of reads to be processed in a subbatch
-    val isPSWJNI = bwamemArgs.isPSWJNI // whether the native JNI library is called for better performance
-    val jniLibPath = bwamemArgs.jniLibPath // the JNI library path in the local machine
-    val outputChoice = bwamemArgs.outputChoice // the output format choice
+    val isPairEnd = bwamemArgs.isPairEnd // perform pair-end or single-end mapping
+    val isPSWBatched = bwamemArgs.swSubBatchSize > 1 // whether the pair-end Smith Waterman is performed in a batched way
+    val subBatchSize = bwamemArgs.swSubBatchSize // the number of reads to be processed in a subbatch
+    val isPSWJNI = bwamemArgs.pswJniLibPath != null // whether the native JNI library is called for better performance
+    val jniLibPath = bwamemArgs.pswJniLibPath // the JNI library path in the local machine
     val outputPath = bwamemArgs.outputPath // the output path in the local or distributed file system
-    val isSWExtBatched = bwamemArgs.isSWExtBatched // whether the SWExtend is executed in a batched way
+    val readGroupString = bwamemArgs.headerLine // complete read group header line: Example: @RG\tID:foo\tSM:bar
+    val isSWExtBatched = bwamemArgs.swExtBatchSize > 1 // whether the SWExtend is executed in a batched way
     val swExtBatchSize = bwamemArgs.swExtBatchSize // the batch size used for used for SWExtend
-    val isFPGAAccSWExtend = bwamemArgs.isFPGAAccSWExtend // whether the FPGA accelerator is used for accelerating SWExtend
+    val isFPGAAccSWExtend = bwamemArgs.fpgaSWExtThreshold >= 0 // whether the FPGA accelerator is used for accelerating SWExtend
     val fpgaSWExtThreshold = bwamemArgs.fpgaSWExtThreshold // the threshold of using FPGA accelerator for SWExtend
     val jniSWExtendLibPath = bwamemArgs.jniSWExtendLibPath // (optional) the JNI library path used for SWExtend FPGA acceleration
 
     // broadcast shared variables
     // If each node has its own copy of human reference genome, we can bypass the broadcast from the driver node.
     // Otherwise, we need to use Spark broadcast
-    var isLocalRef = false
-    if (bwamemArgs.localRef == 1)
-      isLocalRef = true
+    var isLocalRef = bwamemArgs.localRef
     val bwaIdxGlobal = sc.broadcast(new ReferenceBroadcast(sc.broadcast(bwaIdx), isLocalRef, fastaLocalInputPath))
 
     val bwaMemOptGlobal = sc.broadcast(bwaMemOpt)
@@ -282,18 +266,15 @@ object FastMap {
    *  @param sc the spark context object
    *  @param fastaLocalInputPath the local BWA index files (bns, pac, and so on)
    *  @param fastqHDFSInputPath the raw read file stored in HDFS
-   *  @param fastqInputFolderNum the number of folders generated in the HDFS for the raw reads
-   *  @param batchFolderNum the number of raw read folders in a batch to be processed
    *  @param bwaMemOpt the MemOptType object
    *  @param bwaIdx the BWAIdxType object
-   *  @param outputChoice the output format choice
    *  @param outputPath the output path in the local or distributed file system
    *  @param samHeader the SAM header file used for writing SAM output file
    *  @param seqDict (optional) the sequences (chromosome) dictionary: used for ADAM format output
    *  @param readGroup (optional) the read group: used for ADAM format output
    */
-  private def memSingleEndMapping(sc: SparkContext, fastaLocalInputPath: String, fastqHDFSInputPath: String, fastqInputFolderNum: Int, batchFolderNum: Int,
-                                  bwaMemOpt: MemOptType, bwaIdx: BWAIdxType, outputChoice: Int, outputPath: String, samHeader: SAMHeader,
+  private def memSingleEndMapping(sc: SparkContext, fastaLocalInputPath: String, fastqHDFSInputPath: String,
+                                  bwaMemOpt: MemOptType, bwaIdx: BWAIdxType, outputPath: String, samHeader: SAMHeader,
                                   seqDict: SequenceDictionary = null, readGroup: RecordGroup = null) {
     // broadcast shared variables
     //val bwaIdxGlobal = sc.broadcast(bwaIdx, fastaLocalInputPath)  // read from local disks!!!

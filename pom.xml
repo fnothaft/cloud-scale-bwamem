@@ -73,52 +73,15 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>        
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <mainClass>edu.ucla.cs.bwaspark.BWAMEMSpark</mainClass>
-              <classpathLayoutType>custom</classpathLayoutType>
-              <customClasspathLayout>lib/$${artifact.artifactId}-$${artifact.version}$${dashClassifier?}.$${artifact.extension}</customClasspathLayout>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
-        <configuration>
-          <outputDirectory>${project.build.directory}/lib</outputDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin> 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <configuration>
-          <shadedArtifactAttached>false</shadedArtifactAttached>
-	  <outputFile>${project.build.directory}/${project.artifactId}-${project.version}-assembly.jar</outputFile>
-          <artifactSet>
-            <includes>
-              <include>*:*</include>
-            </includes>
-          </artifactSet>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
           <filters>
             <filter>
               <artifact>*:*</artifact>
               <excludes>
-                <exclude>org/datanucleus/**</exclude>
                 <exclude>META-INF/*.SF</exclude>
                 <exclude>META-INF/*.DSA</exclude>
                 <exclude>META-INF/*.RSA</exclude>
@@ -134,18 +97,7 @@
             </goals>
             <configuration>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/services/org.apache.hadoop.fs.FileSystem</resource>
-                </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>reference.conf</resource>
-                </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
-                  <resource>log4j.properties</resource>
-                </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>
             </configuration>
           </execution>
@@ -253,6 +205,11 @@
     <dependency>
       <groupId>org.bdgenomics.utils</groupId>
       <artifactId>utils-misc_2.10</artifactId> 
+      <version>0.2.11</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bdgenomics.utils</groupId>
+      <artifactId>utils-cli_2.10</artifactId>
       <version>0.2.11</version>
     </dependency>
     <dependency>
