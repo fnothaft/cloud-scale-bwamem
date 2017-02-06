@@ -115,7 +115,7 @@ object FastMap {
       memPairEndMapping(sc, bwamemArgs, bwaMemOpt, bwaIdx, samHeader, seqDict, readGroup)
     } else {
       // single-end read mapping
-      memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, bwaMemOpt, bwaIdx, outputPath, samHeader, seqDict, readGroup)
+      memSingleEndMapping(sc, fastaLocalInputPath, fastqHDFSInputPath, bwaMemOpt, bwaIdx, outputPath, samHeader, bwamemArgs.asSingleFile, seqDict, readGroup)
     }
 
   }
@@ -188,7 +188,7 @@ object FastMap {
       fragmentRdd.recordGroups
     }
 
-    fragmentRdd.transform(rdd => {
+    val alignedRdd = fragmentRdd.transform(rdd => {
 
       // SWExtend() is not processed in a batched way (by default)
       val stageOneReads = if (!isSWExtBatched) {
@@ -255,8 +255,15 @@ object FastMap {
       adamObjRdd
     }).copy(sequences = seqDict,
       recordGroups = recordGroupDictionary)
-      .saveAsParquet(outputPath)
 
+    if (outputPath.endsWith(".sam") ||
+      outputPath.endsWith(".bam") ||
+      outputPath.endsWith(".cram")) {
+      alignedRdd.toReads
+        .saveAsSam(outputPath, asSingleFile = bwamemArgs.asSingleFile)
+    } else {
+      alignedRdd.saveAsParquet(outputPath)
+    }
   }
 
   /**
@@ -274,6 +281,7 @@ object FastMap {
    */
   private def memSingleEndMapping(sc: SparkContext, fastaLocalInputPath: String, fastqHDFSInputPath: String,
                                   bwaMemOpt: MemOptType, bwaIdx: BWAIdxType, outputPath: String, samHeader: SAMHeader,
+                                  asSingleFile: Boolean,
                                   seqDict: SequenceDictionary = null, readGroup: RecordGroup = null) {
     // broadcast shared variables
     //val bwaIdxGlobal = sc.broadcast(bwaIdx, fastaLocalInputPath)  // read from local disks!!!
@@ -292,7 +300,7 @@ object FastMap {
       fragmentRdd.recordGroups
     }
 
-    val adamRDD = fragmentRdd.transform(rdd => {
+    val alignedRdd = fragmentRdd.transform(rdd => {
       rdd.flatMap(seq => {
         seq.getAlignments.map(read => {
           bwaMemWorker1(bwaMemOptGlobal.value,
@@ -322,6 +330,14 @@ object FastMap {
         })
     }).copy(sequences = seqDict,
       recordGroups = recordGroupDictionary)
-      .saveAsParquet(outputPath)
+
+    if (outputPath.endsWith(".sam") ||
+      outputPath.endsWith(".bam") ||
+      outputPath.endsWith(".cram")) {
+      alignedRdd.toReads
+        .saveAsSam(outputPath, asSingleFile = asSingleFile)
+    } else {
+      alignedRdd.saveAsParquet(outputPath)
+    }
   }
 }

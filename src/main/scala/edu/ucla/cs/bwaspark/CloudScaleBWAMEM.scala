@@ -65,6 +65,9 @@ class CloudScaleBWAMEMArgs extends Args4jBase with ParquetArgs {
 
   @Args4jOption(required = false, name = "-swExtendJniLibPath", usage = "Path to the optional Smith-Waterman Extend JNI library.")
   var jniSWExtendLibPath: String = null
+
+  @Args4jOption(required = false, name = "-single", usage = "If saving as SAM/BAM/CRAM, saves as a single file.")
+  var asSingleFile: Boolean = false
 }
 
 class CloudScaleBWAMEM(protected val args: CloudScaleBWAMEMArgs) extends BDGSparkCommand[CloudScaleBWAMEMArgs] {
