@@ -1241,18 +1241,6 @@ object MemRegToADAMSAM {
       }
     }
 
-    // seq.comment is a Java ByteBuffer
-    // When using decode(seq.comment), it is a destructive operation
-    // Therefore, we need to create a copy of ByteBuffer for seq.comment
-    val bbComment = ByteBuffer.wrap(seq.getAttributes.getBytes)
-    val comment = Charset.forName("ISO-8859-1").decode(bbComment).array;
-    if (comment.size > 0) {
-      attrStr.addChar('\t')
-      attrStr.addCharArray(comment)
-    }
-
-    builder.setAttributes(attrStr.toString)
-
     // Set read group
     // Note that the alignments are generated from aligner but not from an input SAM file. 
     // Therefore, we should have only one read group.
