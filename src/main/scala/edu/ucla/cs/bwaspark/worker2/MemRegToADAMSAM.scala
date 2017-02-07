@@ -27,8 +27,9 @@ import edu.ucla.cs.bwaspark.sam.SAMHeader
 import edu.ucla.cs.bwaspark.util.BNTSeqUtil._
 import edu.ucla.cs.bwaspark.util.SWUtil._
 
-import org.bdgenomics.formats.avro.AlignmentRecord
 import org.bdgenomics.adam.models.{ SequenceRecord, SequenceDictionary, RecordGroup }
+import org.bdgenomics.formats.avro.AlignmentRecord
+import org.bdgenomics.utils.misc.Logging
 
 import htsjdk.samtools.SAMRecord
 
@@ -38,7 +39,7 @@ import java.io.BufferedReader
 import java.nio.{ ByteBuffer, CharBuffer }
 import java.nio.charset.{ Charset, CharsetEncoder, CharacterCodingException }
 
-object MemRegToADAMSAM {
+object MemRegToADAMSAM extends Logging {
   private val MEM_F_ALL = 0x8
   private val MEM_F_NO_MULTI = 0x10
   private val MEM_MAPQ_COEF = 30.0
@@ -884,8 +885,17 @@ object MemRegToADAMSAM {
    *  @param readGroup the read group: used for ADAM format output
    *  @return an array of ADAM format object
    */
-  def memRegToADAMSe(opt: MemOptType, bns: BNTSeqType, pac: Array[Byte], seq: AlignmentRecord, seqTrans: Array[Byte], regs: Array[MemAlnRegType], extraFlag: Int,
-                     alnMate: MemAlnType, samHeader: SAMHeader, seqDict: SequenceDictionary, readGroup: RecordGroup): Vector[AlignmentRecord] = {
+  def memRegToADAMSe(opt: MemOptType,
+                     bns: BNTSeqType,
+                     pac: Array[Byte],
+                     seq: AlignmentRecord,
+                     seqTrans: Array[Byte],
+                     regs: Array[MemAlnRegType],
+                     extraFlag: Int,
+                     alnMate: MemAlnType,
+                     samHeader: SAMHeader,
+                     seqDict: SequenceDictionary,
+                     readGroup: RecordGroup): Vector[AlignmentRecord] = {
     var alns: MutableList[MemAlnType] = new MutableList[MemAlnType]
     var adamVec: Vector[AlignmentRecord] = scala.collection.immutable.Vector.empty
 
@@ -895,15 +905,22 @@ object MemRegToADAMSAM {
         if (regs(i).score >= opt.T) {
           if (regs(i).secondary < 0 || ((opt.flag & MEM_F_ALL) > 0)) {
             if (regs(i).secondary < 0 || regs(i).score >= regs(regs(i).secondary).score * 0.5) {
-              var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, regs(i))
-              alns += aln
-              aln.flag |= extraFlag // flag secondary
-              if (regs(i).secondary >= 0) aln.sub = -1 // don't output sub-optimal score
-              if (i > 0 && regs(i).secondary < 0) // if supplementary
-                if ((opt.flag & MEM_F_NO_MULTI) > 0) aln.flag |= 0x10000
-                else aln.flag |= 0x800
-
-              if (i > 0 && aln.mapq > alns.head.mapq) aln.mapq = alns.head.mapq
+              try {
+                var aln = memRegToAln(opt, bns, pac, seq.getSequence.length, seqTrans, regs(i))
+                alns += aln
+                aln.flag |= extraFlag // flag secondary
+                if (regs(i).secondary >= 0) aln.sub = -1 // don't output sub-optimal score
+                if (i > 0 && regs(i).secondary < 0) {
+                  // if supplementary
+                  if ((opt.flag & MEM_F_NO_MULTI) > 0) aln.flag |= 0x10000
+                  else aln.flag |= 0x800
+                }
+                if (i > 0 && aln.mapq > alns.head.mapq) aln.mapq = alns.head.mapq
+              } catch {
+                case t: Throwable => {
+                  log.error("Caught alignment error %s on %s.".format(t, regs(i)))
+                }
+              }
             }
           }
         }
